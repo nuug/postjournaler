@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# Run scraperwiki scrapers with a fake scraperwiki library, to allow
+# the scrapers to be tested locally.
+
+file=$1
+export PYTHONPATH=`pwd`/testlib
+
+python $file
