@@ -100,11 +100,6 @@ class JournalParser:
         if -1 != entry['caseid'].find('-'):
             raise ValueError("Field caseid should not include dash: " + entry['caseid'])
 
-
-        # Seen in http://home.nuug.no/~pere/nrk-postjournal/Offentlig%20journal%20NRK%200101_15012011.pdf
-        if 'sender' in entry and -1 != entry['sender'].find("Side: "):
-            raise ValueError("Field sender got page number, not real content")
-
 #
 # Parser of PDFs looking like
 # http://www.storfjord.kommune.no/postliste-18-mai-2012.5056067-105358.html (type 1)
@@ -127,8 +122,6 @@ class PDFJournalParser(JournalParser):
         # FIXME Figure out why this do not work
         #" and not (sender = 'parse error' or recipient != 'parse error') " +
         "limit 1",
-
-                    "scrapedurl from " + self.brokenpagetable + " where scrapedurl = '" + url + "' limit 1",
                     "scrapedurl from " + self.pagetable + " where scrapedurl = '" + url + "' limit 1"]:
             try:
                 result = scraperwiki.sqlite.select(sql)
@@ -138,8 +131,7 @@ class PDFJournalParser(JournalParser):
             except Exception as e:
                 #if ('no such table: %s' % self.pagetable) not in str(e) and 'no such table: swdata' not in str(e):
                 #    raise
-                #print "Ignoring exception: %s" % e
-                True
+                print "Exception: %s" % e
         return False
 
     # Check if we recognize the page content, and throw if not
@@ -147,7 +139,12 @@ class PDFJournalParser(JournalParser):
         s = BeautifulSoup(pagecontent)
         for t in s.findAll('text'):
             if t.text != " ":
-                if 'Innhold:' == t.text:
+                if self.debug:
+                    print t.text
+                if 'Innhold:' == t.text: # type 1 or 2 (ePhorge)
+                    s = None
+                    return True
+                if 'Arkivdel:' == t.text or 'Notater (X):' == t.text: # type 3 (doculive)
                     s = None
                     return True
         s = None
@@ -200,6 +197,7 @@ class PDFJournalParser(JournalParser):
         for i in range(0, len(entrytext)):
             print str(i) + ": '" + entrytext[i] + "'"
 
+    # ePhorte PDF
     def parse_entry_type1(self, entrytext, pdfurl):
         scrapestamputc = datetime.datetime.now()
         entry = {
@@ -353,6 +351,7 @@ class PDFJournalParser(JournalParser):
         self.parse_case_journal_ref(entry, [u'2010/2593-2', u'103004/201', u'1'], "")
         self.parse_case_journal_ref(entry, [u'2011/13415-', u'22', u'100077/201', u'1'], "")
 
+    # ePhorte PDF
     def parse_entry_type2(self, entrytext, pdfurl):
         scrapestamputc = datetime.datetime.now()
         entry = {
@@ -428,6 +427,58 @@ class PDFJournalParser(JournalParser):
             entry['sender'] = string.join(avsender, ", ")
         return entry
 
+    def parse_entry_type3(self, entrytext, pdfurl):
+        scrapestamputc = datetime.datetime.now()
+        entry = {
+            'agency' : self.agency,
+            'scrapestamputc' : scrapestamputc,
+            'scrapedurl' : pdfurl
+            }
+        cur = 0
+        while cur < len(lines):
+            line = lines[cur].text
+            #print line
+            if -1 != line.find('Dok.dato:'):
+                entry['docid'] = lines[cur-2].text
+                entry['doctype'] = lines[cur-1].text
+                entry['docdate'] = parse_date(line.replace("Dok.dato:", ""))
+                caseyear, caseseqnr, casedocseq = split_docid(entry['docid'])
+                entry['caseyear'] = caseyear
+                entry['caseseqnr'] = caseseqnr
+                entry['casedocseq'] = casedocseq
+                entry['caseid'] = str(caseyear) + '/' + str(caseseqnr)
+            if -1 != line.find('Jour.dato:'):
+                entry['recorddate'] = parse_date(lines[cur+1].text)
+                cur = cur + 1
+            if -1 != line.find('Arkivdel:'):
+                entry['arkivdel'] = lines[cur+1].text
+                cur = cur + 1
+            if -1 != line.find('Tilg. kode:'):
+                entry['tilgangskode'] = line.replace("Tilg. kode:", "")
+            if -1 != line.find('Sak:'):
+                entry['casedesc'] = lines[cur+1].text
+                cur = cur + 1
+            if -1 != line.find('Dok:'):
+                entry['docdesc'] = lines[cur+1].text
+                cur = cur + 1
+            if -1 != line.find('Par.:'):
+                entry['exemption'] = line.replace("Par.:", "")
+                cur = cur + 1
+            if -1 != line.find('Avsender:'):
+                entry['sender'] = lines[cur+1].text
+                cur = cur + 1
+            if -1 != line.find('Mottaker:'):
+                entry['recipient'] = lines[cur+1].text
+                cur = cur + 1
+            if -1 != line.find('Saksansv:'):
+                entry['saksansvarlig'] = line.replace("Saksansv:", "").strip()
+            if -1 != line.find('Saksbeh:'):
+                entry['saksbehandler'] = lines[cur+1].text
+                cur = cur + 1
+            cur = cur + 1
+        print entry
+        return entry
+
     def parse_page(self, pdfurl, pagenum, pagecontent):
         print "Scraping " + pdfurl + " page " + str(pagenum)
         s = BeautifulSoup(pagecontent)
@@ -458,7 +509,9 @@ class PDFJournalParser(JournalParser):
         entrycount = 0
         i = 0
         while i < len(text):
-            if 'Innhold:' == text[i]:
+            # Type 1 and 2 (ePhorge)
+            if 'Innhold:' == text[i] or \
+               'Arkivdel:' == text[i]:  # type 3 (doculive)
                 entrycount = entrycount + 1
             i = i + 1
 
@@ -474,23 +527,27 @@ class PDFJournalParser(JournalParser):
                 format = "unknown"
                 while endi < len(text):
                     if 'Klassering:' == text[endi]:
+                        print "Found ePhorte PDF (type 1)"
                         pdfparser = self.parse_entry_type2
                         format = "type2"
                     if 'Avsender\mottaker:' == text[endi]:
+                        print "Found ePhorge PDF (type 2)"
                         pdfparser = self.parse_entry_type1
                         format = "type1"
+                    if 'Arkivdel:' == text[endi]:
+                        print "Found Doculive PDF"
+                        pdfparser = self.parse_entry_type3
+                        format = "type3"
                     if 'Innhold:' == text[endi]:
                         break
                     endi = endi + 1
                 if self.debug:
                     print "Entry " + str(entrycount) + " from " + str(i) + " to " + str(endi) + " ie " + str(endi - i) + " lines"
                 try:
-                    if pdfparser is None:
-                        raise ValueError("Unrecognized page format in " + pdfurl)
                     entry = pdfparser(text[i:endi], pdfurl)
                     if 'caseid' not in entry or entry['caseid'] is None or \
                        not self.is_valid_doctype(entry['doctype']):
-                        raise ValueError("Unable to parse " + pdfurl + " as format " + format + " [" + str(entry) + "]")
+                        raise ValueError("Unable to parse " + pdfurl + " as format " + format + "[" + str(entry) + "]")
 #                print entry
                     datastore.append(entry)
                     i = endi - 2
@@ -511,7 +568,6 @@ class PDFJournalParser(JournalParser):
         text = None
 
     def process_pages(self):
-        brokenpages = 0
         try:
             sqlselect = "* from " + self.pagetable + " limit 1"
             pageref = scraperwiki.sqlite.select(sqlselect)
@@ -530,61 +586,16 @@ class PDFJournalParser(JournalParser):
                         'scrapedurl' : scrapedurl,
                         'pagenum' : pagenum,
                         'pagecontent' : pagecontent,
-                        'failstamp' : datetime.datetime.now(),
                     }
-                    print "Unsupported page %d from %s" % (pagenum, scrapedurl)
-                    brokenpages = brokenpages + 1
+                    print "Broken page %d from %s" % (pagenum, scrapedurl)
                     scraperwiki.sqlite.save(unique_keys=['scrapedurl', 'pagenum'], data=brokenpage, table_name=self.brokenpagetable)
+                    print e
                 scraperwiki.sqlite.execute(sqldelete)
                 scraperwiki.sqlite.commit()
                 pageref = scraperwiki.sqlite.select(sqlselect)
-
-            # Last, try some of the broken pages again, in case we got support for handling them in the mean time
-            try:
-                # First, check if the table exist
-                scraperwiki.sqlite.execute("select * from " + self.brokenpagetable)
-
-                newtrystamp = datetime.datetime.now()
-                sqlselect = "* from " + self.brokenpagetable + " where failstamp is NULL or failstamp < '" + str(newtrystamp) + "'" + " limit 1"
-                try:
-                    pageref = scraperwiki.sqlite.select(sqlselect)
-                except scraperwiki.sqlite.SqliteError, e:
-                    scraperwiki.sqlite.execute("ALTER TABLE " + self.brokenpagetable + " ADD COLUMN failstamp")
-                    scraperwiki.sqlite.commit()
-                    pageref = scraperwiki.sqlite.select(sqlselect)
-
-                pagelimit = 10
-                while pageref and 0 < pagelimit:
-                    pagelimit = pagelimit - 1
-                    scrapedurl = pageref[0]['scrapedurl']
-                    pagenum = pageref[0]['pagenum']
-                    pagecontent = pageref[0]['pagecontent']
-#                    print "Found " + scrapedurl + " page " + str(pagenum) + " length " + str(len(pagecontent))
-                    try:
-                        sqldelete = "delete from " + self.brokenpagetable + " where scrapedurl = '" + scrapedurl + "' and pagenum = " + str(pagenum)
-                        self.parse_page(scrapedurl, pagenum, pagecontent)
-#                    print "Trying to: " + sqldelete
-                        scraperwiki.sqlite.execute(sqldelete)
-                    except ValueError, e:
-                        brokenpage = {
-                            'scrapedurl' : scrapedurl,
-                            'pagenum' : pagenum,
-                            'pagecontent' : pagecontent,
-                            'failstamp' : newtrystamp,
-                        }
-                    
-                        print "Still unsupported page %d from %s" % (pagenum, scrapedurl)
-                        brokenpages = brokenpages + 1
-                        scraperwiki.sqlite.save(unique_keys=['scrapedurl', 'pagenum'], data=brokenpage, table_name=self.brokenpagetable)
-                    scraperwiki.sqlite.commit()
-                    pageref = scraperwiki.sqlite.select(sqlselect)
-            except:
-                True # Ignore missing brokenpages table
         except scraperwiki.sqlite.SqliteError, e:
             print str(e)
             raise
-        if 0 < brokenpages:
-            raise ValueError("Found %d pages with unsupported format" % brokenpages)
 
 def fieldlist():
     import urllib2
@@ -623,6 +634,16 @@ def fieldlist():
     for key in sorted(keys.keys(), lensort):
         print len(keys[key]), key, str(keys[key])
 
-if __name__ == "scraper":
-    fieldlist()
+def test_parser():
+    parser = PDFJournalParser(agency="Dummy agency")
+    parser.debug = True
+    for url in [ #"http://www.stortinget.no/Global/pdf/postjournal/pj-2011-06-23.pdf",
+                "http://www.radhusets-forvaltningstjeneste.oslo.kommune.no/getfile.php/rådhusets%20forvaltningstjeneste%20(RFT)/Intranett%20(RFT)/Dokumenter/Postjournal/11%20November/29112011.pdf"]:
+        pdfcontent = scraperwiki.scrape(url)
+        parser.preprocess(url,pdfcontent)
+        parser.process_pages()
 
+
+if __name__ == "scraper":
+    test_parser()
+#    fieldlist()

@@ -22,7 +22,7 @@ def report_errors(errors):
         print "Errors:"
         for e in errors:
             print e
-        raise ValueError("Something went wrong")
+        raise ValueError(str(len(errors)) + "errors detected")
 
 def out_of_cpu(arg, spent, hard, soft):
     report_errors(arg)
@@ -39,7 +39,7 @@ def process_pdf(parser, pdfurl, errors):
     except IndexError, e:
         errors.append(e)
     except urllib2.HTTPError, e:
-        errors.append(e)
+        errors.append(str(e)  + " " + pdfurl)
 
 def process_page_queue(parser, errors):
     try:

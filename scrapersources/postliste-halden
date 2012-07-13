@@ -83,7 +83,7 @@ def test_small_pdfs(parser):
 
 errors = []
 parser = postlistelib.PDFJournalParser(agency=agency)
-#parser.debug = True
+parser.debug = True
 
 #test_small_pdfs(parser)
 process_page_queue(parser, errors)

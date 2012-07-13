@@ -9,7 +9,7 @@ import httplib
 import urllib2
 
 # Try several times as the database get bigger
-writetries = 5
+writetries = 6
 
 # http://www.oep.no/search/resultSingle.html?journalPostId=1000000
 # http://www.oep.no/search/resultSingle.html?journalPostId=3889259
@@ -102,7 +102,7 @@ def url_from_id(id):
     return "http://www.oep.no/search/resultSingle.html?journalPostId=" + str(id)
 
 def save(data):
-    for run in range(1,writetries):
+    for run in range(0,writetries):
         try:
             scraperwiki.sqlite.save(unique_keys=['journalPostId'], data=data)
             return
@@ -112,7 +112,7 @@ def save(data):
     raise scraperwiki.sqlite.SqliteError("Unable to write to database, tried " + str(writetries) + " times")
 
 def save_var(var, data):
-    for run in range(1,writetries):
+    for run in range(0,writetries):
         try:
             scraperwiki.sqlite.save_var(var, data)
             return
@@ -184,6 +184,8 @@ def fetch_range(first, last, step):
     fetched = 0
     min_id = first
     for id in range(first, last, step):
+        if id < 0:
+            break
         try:
             tries = 3
             while 0 < tries:
@@ -309,6 +311,7 @@ def remove_original():
 #update_doctypes()
 
 print "Starting to fetch journal entries " + str(datetime.datetime.now())
+scraperwiki.scrape("http://www.oep.no/")
 count = 10000
 skiplimit = 500
 # Random value fairly close to the most recent ID when this project started 2012-05-03

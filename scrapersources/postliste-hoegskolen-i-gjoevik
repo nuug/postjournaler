@@ -19,7 +19,7 @@ import re
 #
 #
 # Make sure Scraperwiki believe this is the source from this database
-scraperwiki.scrape("http://www.hig.no/om_hig/offentleg_journal/2012")
+scraperwiki.scrape("http://www.hig.no/om_hig/offentleg_journal")
 
 lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
@@ -31,19 +31,19 @@ def report_errors(errors):
         print "Errors:"
         for e in errors:
             print e
-        exit(1)
+        raise ValueError(str(len(errors)) + " errors detected")
+
 def out_of_cpu(arg, spent, hard, soft):
     report_errors(arg)
 
 def process_pdf(parser, pdfurl, errors):
-    errors = []
     postlistelib.exit_if_no_cpu_left(0, out_of_cpu, errors)
     try:
         pdfcontent = scraperwiki.scrape(pdfurl)
         parser.preprocess(pdfurl, pdfcontent)
         pdfcontent = None
-#    except ValueError, e:
-#        errors.append(e)
+    except ValueError, e:
+        errors.append(e)
     except IndexError, e:
         errors.append(e)
 
@@ -73,21 +73,20 @@ def process_journal_pdfs(parser, listurl, errors):
 #            print "Will process " + url
             process_pdf(parser, url, errors)
 
-def test_small_pdfs(parser):
+#def test_small_pdfs(parser):
     # Test with some smaller PDFs
-    errors = []
-    if parser.is_already_scraped("http://www.hig.no/content/download/30119/360872/file/Offentlig+journal+04.11.2010.pdf"):
-        print "Skipping already scraped "
-        exit(1)
-    else:
-        print "Will process "
-    
+#    errors = []
+#    if parser.is_already_scraped("http://www.hig.no/content/download/30119/360872/file/Offentlig+journal+04.11.2010.pdf"):
+#        print "Skipping already scraped "
+#        exit(1)
+#    else:
+#        print "Will process "
     #process_pdf(parser, "http://www.hig.no/content/download/35184/430061/file/Offentlig%20journal%2025.06.2012.pdf", errors)
     #process_pdf(parser, "http://www.hig.no/content/download/30116/360863/file/Offentlig%20journal%2001.11.2010.pdf", errors)
-    process_pdf(parser, "http://www.hig.no/content/download/30119/360872/file/Offentlig+journal+04.11.2010.pdf", errors)
-    process_page_queue(parser, errors)
-    report_errors(errors)
-    exit(0)
+#    process_pdf(parser, "http://www.hig.no/content/download/30119/360872/file/Offentlig+journal+04.11.2010.pdf", errors)
+#    process_page_queue(parser, errors)
+#    report_errors(errors)
+#    exit(0)
 
 errors = []
 parser = postlistelib.PDFJournalParser(agency=agency)
@@ -96,9 +95,9 @@ parser = postlistelib.PDFJournalParser(agency=agency)
 
 startYear=2010
 endYear=datetime.datetime.now().year
-for year in range(startYear, endYear):
-    process_journal_pdfs(parser, "http://www.hig.no/om_hig/offentleg_journal/%d" % year, errors)
 
+for year in range(startYear, endYear+1): # range goes from startyear to endYear-1
+    process_journal_pdfs(parser, "http://www.hig.no/om_hig/offentleg_journal/%d" % year, errors)
 process_page_queue(parser, errors)
 report_errors(errors)
 
