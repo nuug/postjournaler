@@ -1,0 +1,15 @@
+#!/bin/sh
+
+scrapers="postliste-python-lib postliste-ballangen"
+
+scrapers="$( (
+    GET https://scraperwiki.com/tags/postjournal
+    GET https://scraperwiki.com/tags/postjournal?page=2
+    GET https://scraperwiki.com/tags/postjournal?page=3
+) | grep owner | rev | cut -d/ -f3 | rev)"
+
+mkdir -p scrapersources
+for scraper in $scrapers; do
+    echo "Fetching source for $scraper"
+    GET "https://scraperwiki.com/editor/raw/$scraper" > "scrapersources/$scraper"
+done
