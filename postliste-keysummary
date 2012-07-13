@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+import urllib2
+import json
+
+scrapers = [
+    'postliste-arendal',
+    'postliste-ballangen',
+    'postliste-fredrikstad',
+    'postliste-hadsel',
+    'postliste-halden',
+    'postliste-kafjord',
+    'postliste-kristiansund',
+    'postliste-lier',
+    'postliste-lindesnes',
+    'postliste-naroy',
+    'postliste-nrk',
+    'postliste-oep',
+    'postliste-oslo-bydel-ullern',
+    'postliste-oslo-gravferdsetaten',
+    'postliste-oslo-havn',
+    'postliste-risør-kommune',
+    'postliste-ruter',
+    'postliste-saltdal',
+    'postliste-sivilombudsmannen',
+    'postliste-skogoglandskap',
+    'postliste-sogne',
+    'postliste-stavanger-universitetssjukehus',
+    'postliste-storfjord',
+    'postliste-stortinget',
+    'postliste-universitetet-i-oslo',
+  ]
+
+keys = {}
+
+for scraper in scrapers:
+    print >> sys.stderr, \
+        "Loading " + scraper
+    url = 'https://api.scraperwiki.com/api/1.0/scraper/getinfo?format=jsondict&name=' + scraper + '&version=-1'
+    response = urllib2.urlopen(url)
+    html = response.read()
+    data = json.loads(html)
+    try:
+        if 'swdata' in data[0]['datasummary']['tables']:
+            for key in data[0]['datasummary']['tables']['swdata']['keys']:
+                key = key.lower()
+                if key in keys:
+                    keys[key].append(scraper)
+                else:
+                    keys[key] = [scraper]
+    except:
+        print >> sys.stderr, \
+            "error: unable to find data from scraper " + scraper
+for key in keys:
+    print len(keys[key]), key, str(keys[key])
