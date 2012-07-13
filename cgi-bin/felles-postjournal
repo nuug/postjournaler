@@ -1,0 +1,329 @@
+#!/usr/bin/perl -w
+
+use warnings;
+use strict;
+
+use CGI;
+use DBI;
+use XML::RSS;
+use Data::Dumper;
+
+my $dbdriver = "Pg";
+my $dbhost   = "sqldb.nuug.no";
+my $dbtable  = "journal";
+my $dbname   = "postjournal";
+my $dbuser   = "pere";
+my $dbpwd    = load_pwd("/home/pere/.nuug-fpj-pwd");
+
+sub load_pwd {
+    my $filename = shift;
+    open (my $fh, "<", $filename) || die "unable to read $filename";
+    my $pwd = <$fh>;
+    chomp $pwd;
+    close($fh);
+    return $pwd;
+}
+
+
+sub list_sources {
+    my $dbh = shift;
+    my $sql = "SELECT scraper AS source, COUNT(*) AS count, MIN(recorddate) AS firstdate, MAX(recorddate) AS lastdate, MAX(scrapestamputc) as lastscrape FROM journal GROUP BY scraper ORDER BY lastdate, firstdate, count, source";
+    my %sources;
+    print <<EOF;
+<table class="sourcelist">
+<tr><th>Source</th><th>Count</th><th>First record date</th><th>Last record date</th><th>Last scraper update</th></tr>
+EOF
+    for my $ref ( @{ $dbh->selectall_arrayref($sql, { Slice => {} }) } ) {
+#        print Dumper ($ref);
+        print "<tr>\n";
+        for my $field (qw(source count firstdate lastdate lastscrape)) {
+            my $value = $ref->{$field};
+            if ('source' eq $field) {
+                print "<td><a href='https://scraperwiki.com/scrapers/$value'>$value</a></td>\n";
+            } else {
+                print "<td>$value</td>\n";
+            }
+        }
+        print "</tr>\n";
+    }
+    print "</table>\n"
+
+    # Average interval between document date and record date for the
+    # last months outgoing email.  Should be positive and close to
+    # zero.
+    my $sql = "SELECT agency, ROUND(AVG(recorddate-docdate)) AS avg FROM journal WHERE docdate > CURRENT_DATE - INTERVAL '1 months' AND doctype = 'U' GROUP BY agency ORDER BY avg;";
+
+}
+
+sub agencies {
+    my $dbh = shift;
+    my $sql = "SELECT agency, count(*) as entries FROM journal group by agency ORDER BY agency;";
+    my %agencies;
+    for my $ref ( @{ $dbh->selectall_arrayref($sql, { Slice => {} }) } ) {
+#        print Dumper ($ref);
+        my $agency = $ref->{'agency'};
+        my $entries = $ref->{'entries'};
+        $agencies{$agency} = $entries;
+    }
+
+    return %agencies;
+}
+
+sub list_entries {
+    my ($dbh, $sqlref, $argsref, $format) = @_;
+    my %noshow =
+        (
+         'scrapedurl' => 1,
+         'scrapestamputc' => 1,
+         'scraper' => 1,
+         'caseid' => 1,
+         'caseyear' => 1,
+         'caseseqnr' => 1,
+         'journalyear' => 1,
+         'journalseqnr' => 1,
+        );
+    my @htmlfieldorder = (
+        'agency',
+        'recorddate',
+        'docdate',
+        'docdesc',
+        'casedesc',
+        'sender',
+        'recipient',
+        'journalid',
+        'casedocseq',
+        'doctype',
+        'exemption',
+        );
+    my $where = "";
+    if (@{$sqlref}) {
+        $where = "WHERE (" . join(") and (", @{$sqlref}) . ")";
+    }
+    my $sql = "SELECT * FROM journal $where ORDER BY recorddate DESC, caseyear DESC, caseseqnr DESC, casedocseq DESC LIMIT 200 ;";
+    my $first = 1;
+#    print "SQL: $sql";
+    my $sth = $dbh->prepare($sql) or die $dbh->errstr;
+    $sth->execute(@{$argsref}) or die $dbh->errstr;
+    if ("csv" eq $format) {
+        # Output according to RFC 4180
+        sub csv_format {
+            my $s = shift;
+            if ($s =~ m/"/) {
+                $s =~ s/"/""/
+            }
+            if ($s =~ m/,/ or $s =~ m/\n/ or $s =~ m/\r/ or $s =~ m/"/) {
+                $s = "\"$s\"";
+            }
+            return $s
+        }
+        while (my $ref = $sth->fetchrow_hashref ) {
+            if ($first) {
+                $first = 0;
+                print join(",", keys %{$ref}), "\r\n";
+            }
+            my @values = map {
+                defined $ref->{$_} ? csv_format($ref->{$_}) : ""
+            } keys %{$ref};
+            print join(",", @values), "\r\n";
+        }
+    } elsif ("rss" eq $format) {
+        # create the RSS file (version 1.0)
+        my $rss = new XML::RSS( version   => '1.0',
+                                encoding  => 'UTF-8',
+                                # Encoding is a no-op, all our input is UTF-8
+                                encode_cb => sub { return $_[1]; });
+        my $channellink = "http://www.nuug.no/";
+        $rss->channel(
+            title => "Postjournalsøk",
+            link  => $channellink,
+            description => "Søk i felles postjournal",
+            );
+
+        while (my $ref = $sth->fetchrow_hashref ) {
+            my $docdesc      = $ref->{'docdesc'};
+            my $casedesc   = $ref->{'casedesc'};
+            my $agency     = $ref->{'agency'};
+            my $caseid     = $ref->{'caseid'};
+            my $casedocseq = $ref->{'casedocseq'};
+            my $docdate    = $ref->{'docdate'};
+            my $recorddate = $ref->{'recorddate'};
+            my $sender     = $ref->{'sender'};
+            my $recipient  = $ref->{'recipient'};
+            my $exemption  = $ref->{'exemption'};
+
+            my $link       = "http://www.nuug.no/cgi-bin/felles-postjournal?agency=$agency&caseid=$caseid&casedocseq=$casedocseq";
+
+            my $description = "<p>Agency: $agency</p>".
+                "<p>Docdate: $docdate</p>".
+                "<p>Docdate: $docdate</p>".
+                "<p>Casedesc: $casedesc</p>".
+                "<p>Exemption: $exemption</p>";
+            $description .= "<p>Sender: $sender</p>" if $sender;
+            $description .= "<p>Recipient: $recipient</p>" if $recipient;
+
+            $rss->add_item(
+                title       => "$docdesc ($agency)",
+                link        => $link,
+                description => $description,
+                dc => {
+                    date => $recorddate
+                },
+                );
+        }
+
+        print $rss->as_string;
+    } else {
+        print "<table class='journaltable' border='1'>\n";
+        while (my $ref = $sth->fetchrow_hashref ) {
+            if ($first) {
+                print "<tr>\n";
+                for my $field (@htmlfieldorder) {
+                    next if exists $noshow{$field};
+                    print "<th>$field</th>\n";
+                }
+                $first = 0;
+                print "</tr>\n\n";
+            }
+            print "<tr>\n";
+            for my $field (@htmlfieldorder) {
+                next if exists $noshow{$field};
+                my $value = $ref->{$field};
+                if (defined $value) {
+                    if ("casedesc" eq $field) {
+                        my $caseid = $ref->{'caseid'};
+                        my $thisagency = $ref->{'agency'};
+                        my $url="?caseid=$caseid&agency=$thisagency";
+                        print "<td><a href='$url'>$value</a></td>\n";
+                    } else {
+                        print "<td>$value</td>\n";
+                    }
+                } else {
+                    print "<td></td>\n";
+                }
+            }
+            print "</tr>\n\n";
+        }
+        print "</table>\n";
+    }
+}
+
+my $query = new CGI;
+
+my $dbh =
+    DBI->connect("dbi:$dbdriver:dbname=$dbname;host=$dbhost;sslmode=require",
+                 $dbuser, $dbpwd) ||
+    die "Unable to connect to DB: $DBI::errstr";
+
+if ($dbdriver eq "Pg") { # How is this done with other databases?
+    $dbh->do("SET CLIENT_ENCODING TO 'UTF-8'");
+}
+
+my $agency = $query->param('agency');
+
+my @sql = ();
+my @args = ();
+
+my $format = "html";
+my $q = '';
+my $caseid;
+my $listsource;
+
+if ($query->param('listsource')) {
+    $listsource = $query->param('listsource');
+}
+
+if ($query->param('q')) {
+    $q = $query->param('q');
+    my $st = "%$q%";
+    push(@sql, "docdesc ilike ? or casedesc ilike ? or sender ilike ? or recipient ilike ?");
+    push(@args, $st,  $st,  $st,  $st);
+}
+if ($query->param('caseid')) {
+    $caseid = $query->param('caseid');
+    my ($caseyear, $caseseqnr) = split("/", $caseid);
+    push(@sql, "caseyear = ? and caseseqnr = ?");
+    push(@args, $caseyear, $caseseqnr);
+}
+if ($agency) {
+    push(@sql, "agency = ?");
+    push(@args, $agency);
+}
+if ($query->param('format')) {
+    $format = $query->param('format');
+}
+
+if ("csv" eq $format) {
+    print $query->header(-type       => 'text/csv',
+                         -attachment => 'postjournal-utdrag.csv',
+                         -charset    => 'utf-8');
+    list_entries($dbh, \@sql, \@args, "csv");
+} elsif ("rss" eq $format) {
+    print $query->header(-type       => 'application/rss+xml',
+                         -attachment => 'postjournal-utdrag.rss',
+                         -charset    => 'utf-8');
+    list_entries($dbh, \@sql, \@args, "rss");
+} elsif ("html" eq $format) {
+    print $query->header(-charset=> 'utf-8');
+    print <<EOF;
+<html>
+<head>
+<title>Offentlige postjournaler</title>
+</head>
+<body>
+
+<p>Se <a href="https://scraperwiki.com/tags/postjournal">scraperwiki</a>
+for kildedata (<a href="?listsource=yes">kildestatus</a>).  Dette er et
+<a href="http://www.nuug.no/">NUUG</a>-prosjekt.</p>
+
+<h1>Offentlige postjournaler</h1>
+EOF
+
+    print <<EOF;
+
+<p><form>
+EOF
+    if ($agency) {
+        print "<input type='hidden' name='agency' value='$agency'>\n";
+        print "Søk (kun $agency): <input name='q' value='$q'> <input type='submit'>\n";
+    } else {
+        print "Søk: <input name='q' value='$q'> <input type='submit'>\n";
+    }
+    print <<EOF;
+</form></p>
+
+EOF
+
+    # Only
+    if (! $q and ! defined $caseid and ! defined $agency and ! defined $listsource) {
+        my %agencies = agencies($dbh);
+        print <<EOF;
+<p>Journal for:
+EOF
+        for my $aagency (sort keys %agencies) {
+            print "<b>";
+#            print "*" if (defined $agency and $agency eq $aagency);
+            print "<a href='?agency=$aagency'>$aagency</a></b>";
+            print "&nbsp;(", $agencies{$aagency}, ")\n";
+        }
+    }
+
+    if ($listsource) {
+        list_sources($dbh);
+    } else {
+        my $href="";
+        $href .= "&agency=$agency" if defined $agency;
+        $href .= "&q=$q" if defined $q;
+        $href .= "&caseid=$caseid" if defined $caseid;
+        print "<p>Last ned som ";
+        print "<a href='?format=csv$href'>CSV/regneark</a> (<a href=\"http://www.ietf.org/rfc/rfc4180.txt\">RFC 4180</a>)";
+        print ", <a href='?format=rss$href'>RSS</a>";
+        print "</p>\n\n";
+
+        list_entries($dbh, \@sql, \@args, "html");
+    }
+    print <<EOF;
+</body>
+</html>
+EOF
+
+}
