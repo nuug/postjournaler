@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Python library for parsing public post journals (postlister) in Norway.
 #
@@ -100,6 +100,11 @@ class JournalParser:
         if -1 != entry['caseid'].find('-'):
             raise ValueError("Field caseid should not include dash: " + entry['caseid'])
 
+
+        # Seen in http://home.nuug.no/~pere/nrk-postjournal/Offentlig%20journal%20NRK%200101_15012011.pdf
+        if 'sender' in entry and -1 != entry['sender'].find("Side: "):
+            raise ValueError("Field sender got page number, not real content")
+
 #
 # Parser of PDFs looking like
 # http://www.storfjord.kommune.no/postliste-18-mai-2012.5056067-105358.html (type 1)
@@ -122,6 +127,8 @@ class PDFJournalParser(JournalParser):
         # FIXME Figure out why this do not work
         #" and not (sender = 'parse error' or recipient != 'parse error') " +
         "limit 1",
+
+                    "scrapedurl from " + self.brokenpagetable + " where scrapedurl = '" + url + "' limit 1",
                     "scrapedurl from " + self.pagetable + " where scrapedurl = '" + url + "' limit 1"]:
             try:
                 result = scraperwiki.sqlite.select(sql)
@@ -139,8 +146,8 @@ class PDFJournalParser(JournalParser):
         s = BeautifulSoup(pagecontent)
         for t in s.findAll('text'):
             if t.text != " ":
-                if self.debug:
-                    print t.text
+#                if self.debug:
+#                    print t.text
                 if 'Innhold:' == t.text: # type 1 or 2 (ePhorge)
                     s = None
                     return True
@@ -544,10 +551,12 @@ class PDFJournalParser(JournalParser):
                 if self.debug:
                     print "Entry " + str(entrycount) + " from " + str(i) + " to " + str(endi) + " ie " + str(endi - i) + " lines"
                 try:
+                    if pdfparser is None:
+                        raise ValueError("Unrecognized page format in " + pdfurl)
                     entry = pdfparser(text[i:endi], pdfurl)
                     if 'caseid' not in entry or entry['caseid'] is None or \
                        not self.is_valid_doctype(entry['doctype']):
-                        raise ValueError("Unable to parse " + pdfurl + " as format " + format + "[" + str(entry) + "]")
+                        raise ValueError("Unable to parse " + pdfurl + " as format " + format + " [" + str(entry) + "]")
 #                print entry
                     datastore.append(entry)
                     i = endi - 2
@@ -568,6 +577,7 @@ class PDFJournalParser(JournalParser):
         text = None
 
     def process_pages(self):
+        brokenpages = 0
         try:
             sqlselect = "* from " + self.pagetable + " limit 1"
             pageref = scraperwiki.sqlite.select(sqlselect)
@@ -586,16 +596,61 @@ class PDFJournalParser(JournalParser):
                         'scrapedurl' : scrapedurl,
                         'pagenum' : pagenum,
                         'pagecontent' : pagecontent,
+                        'failstamp' : datetime.datetime.now(),
                     }
-                    print "Broken page %d from %s" % (pagenum, scrapedurl)
+                    print "Unsupported page %d from %s" % (pagenum, scrapedurl)
+                    brokenpages = brokenpages + 1
                     scraperwiki.sqlite.save(unique_keys=['scrapedurl', 'pagenum'], data=brokenpage, table_name=self.brokenpagetable)
-                    print e
                 scraperwiki.sqlite.execute(sqldelete)
                 scraperwiki.sqlite.commit()
                 pageref = scraperwiki.sqlite.select(sqlselect)
+
+            # Last, try some of the broken pages again, in case we got support for handling them in the mean time
+            try:
+                # First, check if the table exist
+                scraperwiki.sqlite.execute("select * from " + self.brokenpagetable)
+
+                newtrystamp = datetime.datetime.now()
+                sqlselect = "* from " + self.brokenpagetable + " where failstamp is NULL or failstamp < '" + str(newtrystamp) + "'" + " limit 1"
+                try:
+                    pageref = scraperwiki.sqlite.select(sqlselect)
+                except scraperwiki.sqlite.SqliteError, e:
+                    scraperwiki.sqlite.execute("ALTER TABLE " + self.brokenpagetable + " ADD COLUMN failstamp")
+                    scraperwiki.sqlite.commit()
+                    pageref = scraperwiki.sqlite.select(sqlselect)
+
+                pagelimit = 10
+                while pageref and 0 < pagelimit:
+                    pagelimit = pagelimit - 1
+                    scrapedurl = pageref[0]['scrapedurl']
+                    pagenum = pageref[0]['pagenum']
+                    pagecontent = pageref[0]['pagecontent']
+#                    print "Found " + scrapedurl + " page " + str(pagenum) + " length " + str(len(pagecontent))
+                    try:
+                        sqldelete = "delete from " + self.brokenpagetable + " where scrapedurl = '" + scrapedurl + "' and pagenum = " + str(pagenum)
+                        self.parse_page(scrapedurl, pagenum, pagecontent)
+#                    print "Trying to: " + sqldelete
+                        scraperwiki.sqlite.execute(sqldelete)
+                    except ValueError, e:
+                        brokenpage = {
+                            'scrapedurl' : scrapedurl,
+                            'pagenum' : pagenum,
+                            'pagecontent' : pagecontent,
+                            'failstamp' : newtrystamp,
+                        }
+                    
+                        print "Still unsupported page %d from %s" % (pagenum, scrapedurl)
+                        brokenpages = brokenpages + 1
+                        scraperwiki.sqlite.save(unique_keys=['scrapedurl', 'pagenum'], data=brokenpage, table_name=self.brokenpagetable)
+                    scraperwiki.sqlite.commit()
+                    pageref = scraperwiki.sqlite.select(sqlselect)
+            except:
+                True # Ignore missing brokenpages table
         except scraperwiki.sqlite.SqliteError, e:
             print str(e)
             raise
+        if 0 < brokenpages:
+            raise ValueError("Found %d pages with unsupported format" % brokenpages)
 
 def fieldlist():
     import urllib2
@@ -638,12 +693,12 @@ def test_parser():
     parser = PDFJournalParser(agency="Dummy agency")
     parser.debug = True
     for url in [ #"http://www.stortinget.no/Global/pdf/postjournal/pj-2011-06-23.pdf",
-                "http://www.radhusets-forvaltningstjeneste.oslo.kommune.no/getfile.php/rådhusets%20forvaltningstjeneste%20(RFT)/Intranett%20(RFT)/Dokumenter/Postjournal/11%20November/29112011.pdf"]:
+                "http://www.radhusets-forvaltningstjeneste.oslo.kommune.no/getfile.php/rådhusets%20forvaltningstjeneste%20(RFT)/Intranett%20(RFT)/Dokumenter/Postjournal/11%20November/29112011.pdf",
+		]:
         pdfcontent = scraperwiki.scrape(url)
         parser.preprocess(url,pdfcontent)
         parser.process_pages()
 
-
-if __name__ == "scraper":
+if __name__ == "scraper" or __name__ == '__main__':
     test_parser()
 #    fieldlist()
