@@ -9,6 +9,7 @@ import sys
 import os.path
 
 dbname = "postjournal"
+dbtable = "journal"
 f = open(os.path.expanduser('~/.nuug-fpj-pwd'), 'r')
 password = f.readline().strip()
 f.close()
@@ -66,16 +67,15 @@ def jsonurl(scraper, lastscrapestamputc):
         "'%s'+order+by+scrapestamputc+limit+%d" % (lastscrapestamputc, limit)
 
 def create_table(dbconn, dbcursor):
-    table = "journal"
-    print "Remove old %s table" % table
-    dbcursor.execute("DROP TABLE " + table)
+    print "Remove old %s table" % dbtable
+    dbcursor.execute("DROP TABLE " + dbtable)
     print "Create new table"
     s = map((lambda colname: colname + " " + columns[colname]), columns)
-    dbcursor.execute("CREATE TABLE "+table+" (" + string.join(s,",") + ")")
+    dbcursor.execute("CREATE TABLE "+dbtable+" (" + string.join(s,",") + ")")
     dbconn.commit()
     print "Add unique index"
-    dbcursor.execute("CREATE UNIQUE INDEX " + table + "_unique " + \
-                         "ON " + table + " (agency, caseyear, caseseqnr, casedocseq)")
+    dbcursor.execute("CREATE UNIQUE INDEX " + dbtable + "_unique " + \
+                         "ON " + dbtable + " (agency, caseyear, caseseqnr, casedocseq, journalyear, journalseqnr)")
     dbconn.commit()
 
 def insert_entry(dbcursor, entry):
@@ -97,19 +97,19 @@ def insert_entry(dbcursor, entry):
             if '' != entry[colname] or colname in mustcols:
                 cols.append(colname)
                 args.append(entry[colname])
-    inssql = "INSERT INTO journal ( " + string.join(cols, ",") + " ) " + \
+    inssql = "INSERT INTO "+dbtable+" ( " + string.join(cols, ",") + " ) " + \
         "VALUES ( " + \
         string.join(map((lambda colname: "%s"), args), ",") + " )"
 
     # Make sure replacing work (as INSERT or REPLACE do not work with
     # PostgreSQL) by removing the old entry if it exist.
     if 'casedocseq' in entry and -1 != entry['casedocseq']:
-        delsql = "DELETE FROM journal WHERE " + \
+        delsql = "DELETE FROM " + dbtable + " WHERE " + \
             string.join(map((lambda colname: colname + " = %s"), uniquecols1),
                         " and ")
         uniquecols = uniquecols1
     else:
-        delsql = "DELETE FROM journal WHERE " + \
+        delsql = "DELETE FROM " + dbtable + " WHERE " + \
             string.join(map((lambda colname: colname + " = %s"), uniquecols2),
                         " and ")
         uniquecols = uniquecols2
@@ -137,7 +137,7 @@ def populate_from_scraper(dbcursor, scraper):
     lastscrapestamputc = ''
     if True:
         try:
-            sql = "SELECT MAX(scrapestamputc) FROM journal WHERE scraper = '%s'" % scraper
+            sql = "SELECT MAX(scrapestamputc) FROM %s WHERE scraper = '%s'" % (dbtable, scraper)
 #            print sql
             dbcursor.execute(sql, (scraper,))
             res = dbcursor.fetchone()[0]
@@ -182,7 +182,7 @@ def populate_from_scraper(dbcursor, scraper):
     return len(data)
 
 def verify_all_data_is_transfered(dbcursor, scraper):
-    sql = "SELECT COUNT(*) FROM journal WHERE scraper = '%s'" % scraper
+    sql = "SELECT COUNT(*) FROM %s WHERE scraper = '%s'" % (dbtable, scraper)
     dbcursor.execute(sql, (scraper,))
     res = dbcursor.fetchone()[0]
     if res is not None:
