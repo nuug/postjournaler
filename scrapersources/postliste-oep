@@ -195,7 +195,7 @@ def fetch_range(first, last, step):
                         skipped = skipped + 1
                         if skipped == myskiplimit and myskiplimit == skiplimit:
                             tmp = []
-                            for limit  in [250, 500, 800, 1000, 1200, 1500, 1700, 2000, 3000, 5000]:
+                            for limit  in [250, 500, 800, 1000, 1200, 1500, 1700, 2000, 3000, 5000, 7000]:
                                 testid = id + limit * step
                                 if -1 != fetch_oep_entry(testid, tmp):
                                     print "Looking "+str(limit)+" ahead, found " + url_from_id(testid)

@@ -1,5 +1,4 @@
-import os
-import urlparse
+import os, urlparse, cgi
 urlquery = os.getenv('URLQUERY')
 
 if urlquery:
@@ -18,7 +17,8 @@ print '''<html>
 <head>
 <link rel="stylesheet" href="https://views.scraperwiki.com/run/jquery-tablesorter/?file=style-blue.css" type="text/css" />
 <script type="text/javascript" src="https://views.scraperwiki.com/run/jquery-tablesorter/?file=jquery-1-4-2-min.js"></script>
-<script type="text/javascript" src="https://views.scraperwiki.com/run/jquery-tablesorter/?file=jquery.tablesorter.2-0-5.min.js"></script>'''
+<script type="text/javascript" src="https://views.scraperwiki.com/run/jquery-tablesorter/?file=jquery.tablesorter.2-0-5.min.js"></script>
+'''
 
 print '''</head><body>
 <p>This view lists scrapers with yaml-combatible comments (containing the string "nuug-postliste-endyaml" like the following in their description
@@ -35,10 +35,10 @@ Run: daily&lt;br&gt;
 </pre></p>
 <table id="myTable" class="tablesorter">'''
 
-print '<thead><tr><th>Name</th><th>type</th><th>status</th><th>schedule</th><th>format</th><th>datatype</th><th>URL</th></tr></thead><tbody>'
+print '<thead><tr><th>Name</th><th>type</th><th>status</th><th>schedule</th><th>format</th><th>datatype</th><th>created</th><th>URL</th></tr></thead><tbody>'
 counter = {}
 for scraper in json_data:
-    print scraper
+    #print "<!-- %s -->" % cgi.escape("%s" % scraper)
     comment = re.findall(r'<!-- nuug-postliste-yaml -->(.*)<!-- nuug-postliste-endyaml -->', 
                     scraper['description'], re.DOTALL)
     assert len(comment) == 1
@@ -59,8 +59,8 @@ for scraper in json_data:
     else: Type = 'unknown'
 
 
-    print '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><a href="https://scraperwiki.com/scrapers/%s/">URL</a></td></tr>' % \
-    (data['Name'],data['Type'],data['Status'], Run, Format, Type, scraper['short_name'])
+    print '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><a href="https://scraperwiki.com/scrapers/%s/">URL</a></td></tr>' % \
+    (data['Name'],data['Type'],data['Status'], Run, Format, Type, scraper['created'], scraper['short_name'])
 print '''</tbody></table><table id="myTable2" class="tablesorter"><thead><tr><th>type</th><th>count</th></tr></thead><tbody>'''
 
 for key in counter:
@@ -78,13 +78,30 @@ try:
     print "<tr><td>Fylkeskommune</td><td>%.2f%% (%d av %d)</td></tr>" % \
     ((float(counter['fylkeskommune'])/float(num_fylke))*100, counter['fylkeskommune'], num_fylke)
 except KeyError: pass
+#http://stackoverflow.com/questions/7561026/jquery-tablesorter-parser-for-datetime-in-mm-dd-yyyy-hhmi-am-format
+#http://stackoverflow.com/questions/1707840/date-sorting-problem-with-jquery-tablesorter
 print '''</tbody></table>
 <script type="text/javascript">
     $(document).ready(function() 
         { 
-            $("#myTable").tablesorter(); 
-            $("#myTable2").tablesorter(); 
+            $("#myTable").tablesorter(
+                {
+                    debug: true,
+                    headers:
+                    {  
+                        6 : { sorter: "text"  },
+                        7: {sorter: false}
+                    }
+                }
+            );
+            //$("#myTable2").tablesorter(); 
         } 
     );
+
+$(function() {
+
+});
+
+
 </script>
 </body></html>'''

@@ -147,12 +147,13 @@ class PDFJournalParser(JournalParser):
         for t in s.findAll('text'):
             if t.text != " ":
 #                if self.debug:
-#                    print t.text
+#                    print "'%s'" % t.text
                 if 'Innhold:' == t.text: # type 1 or 2 (ePhorge)
                     s = None
                     return True
                 if 'Arkivdel:' == t.text or 'Notater (X):' == t.text: # type 3 (doculive)
                     s = None
+                    print "Found doculive (type 3)"
                     return True
         s = None
         if self.debug:
@@ -173,8 +174,8 @@ class PDFJournalParser(JournalParser):
         else:
             options = ''
         xml=scraperwiki.pdftoxml(pdfcontent, options)
-        if self.debug:
-            print xml
+#        if self.debug:
+#            print xml
         pages=re.findall('(<page .+?</page>)',xml,flags=re.DOTALL)
         xml=None
 #    print pages[:1][:1000]
@@ -694,7 +695,7 @@ def test_parser():
     parser.debug = True
     for url in [ #"http://www.stortinget.no/Global/pdf/postjournal/pj-2011-06-23.pdf",
                 "http://www.radhusets-forvaltningstjeneste.oslo.kommune.no/getfile.php/rådhusets%20forvaltningstjeneste%20(RFT)/Intranett%20(RFT)/Dokumenter/Postjournal/11%20November/29112011.pdf",
-		]:
+        ]:
         pdfcontent = scraperwiki.scrape(url)
         parser.preprocess(url,pdfcontent)
         parser.process_pages()
@@ -702,3 +703,4 @@ def test_parser():
 if __name__ == "scraper" or __name__ == '__main__':
     test_parser()
 #    fieldlist()
+
