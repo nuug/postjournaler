@@ -64,9 +64,9 @@ def process_journal_pdfs(parser, listurl, errors):
             continue
         if parser.is_already_scraped(url):
             True
-#            print "Skipping already scraped " + url
+            print "Skipping already scraped " + url
         else:
-#            print "Will process " + url
+            print "Will process " + url
             process_pdf(parser, url, errors)
 
 def test_small_pdfs(parser):

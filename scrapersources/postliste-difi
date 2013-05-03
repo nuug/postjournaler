@@ -54,17 +54,17 @@ def process_journal_pdfs(parser, listurl, errors):
     html = scraperwiki.scrape(listurl)
     root = lxml.html.fromstring(html)
     html = None
-    for ahref in root.cssselect("div.body a"):
+    for ahref in root.cssselect("div.sixcol a"):
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
         if -1 != href.find("file://") or -1 == url.find(".pdf"):
-#            print "Skipping non-http URL " + url
+            print "Skipping non-http URL " + url
             continue
         if parser.is_already_scraped(url):
             True
-#            print "Skipping already scraped " + url
+            print "Skipping already scraped " + url
         else:
-#            print "Will process " + url
+            #print "Will process " + url
             process_pdf(parser, url, errors)
 
 def test_small_pdfs(parser):

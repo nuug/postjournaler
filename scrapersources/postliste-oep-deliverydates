@@ -30,7 +30,9 @@ def fetch_oep_deliverydates(url, datastorage):
     return 0
 
 datastorage = []
-fetch_oep_deliverydates("http://www.oep.no/pub/faces/statistikk.jsp?reposId=3", datastorage)
+#fetch_oep_deliverydates("http://www.oep.no/pub/faces/statistikk.jsp?reposId=3", datastorage)
+# New url before 2012-11-09
+fetch_oep_deliverydates("http://www.oep.no/pub/report.xhtml?reportId=3", datastorage)
 print datastorage
 scraperwiki.sqlite.save(unique_keys=['agency', 'deliverydate'], data=datastorage)
 

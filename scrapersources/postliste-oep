@@ -9,7 +9,7 @@ import httplib
 import urllib2
 
 # Try several times as the database get bigger
-writetries = 6
+writetries = 8
 
 # http://www.oep.no/search/resultSingle.html?journalPostId=1000000
 # http://www.oep.no/search/resultSingle.html?journalPostId=3889259
@@ -102,23 +102,31 @@ def url_from_id(id):
     return "http://www.oep.no/search/resultSingle.html?journalPostId=" + str(id)
 
 def save(data):
+    problem = False
     for run in range(0,writetries):
         try:
             scraperwiki.sqlite.save(unique_keys=['journalPostId'], data=data)
+            if problem:
+                print "Sqlite write succeeded"
             return
         except scraperwiki.sqlite.SqliteError, e:
-            print "Sqlite write error, trying again"
+            print "Sqlite write error, trying again: " + str(e)
             time.sleep(22)
+            problem = True
     raise scraperwiki.sqlite.SqliteError("Unable to write to database, tried " + str(writetries) + " times")
 
 def save_var(var, data):
+    problem = False
     for run in range(0,writetries):
         try:
             scraperwiki.sqlite.save_var(var, data)
+            if problem:
+                print "Sqlite write succeeded"
             return
         except scraperwiki.sqlite.SqliteError, e:
-            print "Sqlite write error, trying again"
+            print "Sqlite write error, trying again: " + str(e)
             time.sleep(22)
+            problem = True
     raise scraperwiki.sqlite.SqliteError("Unable to write variable " + var + " to database, tried " + str(writetries) + " times")
 
 fieldmap = {
@@ -177,9 +185,8 @@ def fetch_oep_entry(id, datastorage):
 #    scraperwiki.sqlite.save(unique_keys=['journalPostId'], data=data)
     return 0
 
-def fetch_range(first, last, step):
+def fetch_range(datastorage, first, last, step):
     myskiplimit = skiplimit
-    datastorage = []
     skipped = 0
     fetched = 0
     min_id = first
@@ -312,6 +319,16 @@ def remove_original():
 
 print "Starting to fetch journal entries " + str(datetime.datetime.now())
 scraperwiki.scrape("http://www.oep.no/")
+datastorage = []
+
+# Update entries to handle <URL: https://rt.nuug.no:443/Ticket/Display.html?id=6342 >.
+# Used 2012-09-17
+#scraperwiki.sqlite.execute("DELETE from swdata where journalPostId = 638167")
+#fetch_oep_entry(638167, datastorage)
+#scraperwiki.sqlite.execute("DELETE from swdata where journalPostId = 638104")
+#fetch_oep_entry(638104, datastorage)
+#scraperwiki.sqlite.commit()
+
 count = 10000
 skiplimit = 500
 # Random value fairly close to the most recent ID when this project started 2012-05-03
@@ -320,20 +337,21 @@ try:
     max = scraperwiki.sqlite.select("max(journalPostId) as max from swdata")[0]["max"]
     if 0 < scraperwiki.sqlite.get_var('min_tested_id'):
         saved_min = scraperwiki.sqlite.get_var('min_tested_id')
+    else:
+        saved_min = 0
     sql_min = scraperwiki.sqlite.select("min(journalPostId) as min from swdata")[0]["min"]
     print "Saved min: " + str(saved_min) + ", sql min: " + str(sql_min)
     if sql_min < saved_min:
         min = sql_min
     else:
         min = saved_min
-
     print "Scraping " + str(count) + " IDs below " + str(min) + " and above " + str(max)
 except scraperwiki.sqlite.SqliteError:
     pass
 
-fetched = fetch_range(max + 1, max + count, 1)
+fetched = fetch_range(datastorage, max + 1, max + count, 1)
 print "Fetched " + str(fetched) + " new journal entries, cpu spent: " + str(cpu_spent())
 if min >= 0:
-    fetched = fetch_range(min, min - count, -1)
+    fetched = fetch_range(datastorage, min, min - count, -1)
     print "Fetched " + str(fetched) + " old journal entries, cpu spent: " + str(cpu_spent())
 

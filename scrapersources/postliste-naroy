@@ -59,7 +59,12 @@ def process_journal_pdfs(parser, listurl, errors):
             continue
         # Special case, file indicating no journal entries this day
         if "http://www.naroy.kommune.no/NK/Intern.nsf/FilA/CA6C83764E56DDCBC1257A02003F9025/$FILE/Postjournal+11.05.12.pdf" == url or \
-            "http://www.naroy.kommune.no/NK/Intern.nsf/FilA/7FD82A18C1A1F137C12579F90029DEBD/$FILE/Postjournal+07.05.12.pdf" == url:
+            "http://www.naroy.kommune.no/NK/Intern.nsf/FilA/7FD82A18C1A1F137C12579F90029DEBD/$FILE/Postjournal+07.05.12.pdf" == url or \
+            "http://www.naroy.kommune.no/NK/Intern.nsf/FilA/777B497BB48936ACC1257A450033E1D4/$FILE/Postjournal+20.07.12.pdf" == url or \
+            "http://www.naroy.kommune.no/NK/Intern.nsf/FilA/1802A0FF57C08EFEC1257A4500337345/$FILE/Postjournal+16.07.12.pdf" == url or \
+            "http://www.naroy.kommune.no/NK/Intern.nsf/FilA/90373A38701C27E5C1257A45002F63FD/$FILE/Postjournal+12.07.12.pdf" == url or \
+            "http://www.naroy.kommune.no/NK/Intern.nsf/FilA/6B00A3BD92B3C2AEC1257A45002F4044/$FILE/Postjournal+10.07.12.pdf" == url or \
+            "http://www.naroy.kommune.no/NK/Intern.nsf/FilA/0141B5488D38B8FEC1257A44003756ED/$FILE/Postjournal+06.07.12.pdf" == url:
             continue
         if parser.is_already_scraped(url):
             True

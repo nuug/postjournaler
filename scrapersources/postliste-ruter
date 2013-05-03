@@ -10,6 +10,7 @@ import resource
 import sys
 import urlparse
 import re
+scraperwiki.scrape('http://www2.ruter.no/verdt-a-vite/presse/offentlig-journal/')
 lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 

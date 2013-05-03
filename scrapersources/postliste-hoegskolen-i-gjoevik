@@ -60,13 +60,15 @@ def process_journal_pdfs(parser, listurl, errors):
     html = scraperwiki.scrape(listurl)
     root = lxml.html.fromstring(html)
     html = None
-    for ahref in root.cssselect("div.spalte-inner a"):
+    for ahref in root.cssselect("section a"):
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href).replace(" ", "+")
+        #print url
         if -1 != href.find("file://") or -1 == url.find(".pdf"):
 #            print "Skipping non-http URL " + url
             continue
         if parser.is_already_scraped(url):
+            #print "Scraped: %s" % url
             True
 #            print "Skipping already scraped " + url
         else:
@@ -98,6 +100,16 @@ endYear=datetime.datetime.now().year
 
 for year in range(startYear, endYear+1): # range goes from startyear to endYear-1
     process_journal_pdfs(parser, "http://www.hig.no/om_hig/offentleg_journal/%d" % year, errors)
+
 process_page_queue(parser, errors)
 report_errors(errors)
 
+warningQuery = "recorddate as lastupdate from 'swdata' order by recorddate DESC limit 1";
+result = scraperwiki.sqlite.select(warningQuery)
+now=datetime.datetime.today()
+then=datetime.datetime.strptime(result[0]['lastupdate'],"20%y-%m-%dT%H:%M:%S")
+
+if (now-then).days > 14:
+    print "warning"
+    warningURL = "http://hild1.no/~hildenae/files/dynamic/run.php?scraper=postliste-hoegskolen-i-gjoevik&reason=7days";
+    scraperwiki.scrape(warningURL)

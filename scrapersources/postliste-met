@@ -58,11 +58,11 @@ def process_journal_pdfs(parser, listurl, errors):
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
         if -1 != href.find("file://") or -1 == url.find("=File.getFile;"):
-#            print "Skipping non-http URL " + url
+            print "Skipping non-http URL " + url
             continue
         if parser.is_already_scraped(url):
             True
-#            print "Skipping already scraped " + url
+            print "Skipping already scraped " + url
         else:
 #            print "Will process " + url
             process_pdf(parser, url, errors)
