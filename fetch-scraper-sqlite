@@ -1,0 +1,9 @@
+#!/bin/sh
+
+for scraper in $(ls scrapersources/); do
+	dbfile=sqlite-dbs/$scraper.sqlite3
+	if [ ! -f $dbfile ] ; then
+		wget -O sqlite-dbs/$scraper.sqlite3 https://classic.scraperwiki.com/scrapers/export_sqlite/$scraper/
+	fi
+done
+
