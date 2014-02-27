@@ -2,10 +2,10 @@
 
 # Should find quicker way to find scrapers
 scrapers="$( (
-    GET https://scraperwiki.com/tags/postjournal
-    GET https://scraperwiki.com/tags/postjournal?page=2
-    GET https://scraperwiki.com/tags/postjournal?page=3
-    GET https://scraperwiki.com/tags/postjournal?page=4
+    GET https://classic.scraperwiki.com/tags/postjournal
+    GET https://classic.scraperwiki.com/tags/postjournal?page=2
+    GET https://classic.scraperwiki.com/tags/postjournal?page=3
+    GET https://classic.scraperwiki.com/tags/postjournal?page=4
 ) | grep owner | rev | cut -d/ -f3 | rev)"
 
 mkdir -p scrapersources
