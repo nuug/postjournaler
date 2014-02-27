@@ -7,6 +7,7 @@ import json
 import string
 import sys
 import os.path
+import time
 
 dbname = "postjournal"
 dbtable = "journal"
@@ -133,7 +134,7 @@ def insert_entry(dbcursor, entry):
 #	print sql
 #	print e
 
-def populate_from_scraper(dbcursor, scraper):
+def populate_from_scraper_real(dbcursor, scraper):
     lastscrapestamputc = ''
     if True:
         try:
@@ -167,6 +168,9 @@ def populate_from_scraper(dbcursor, scraper):
         # Handle OEP scraper 2012-06-16
         if not 'caseyear' in entry or entry['caseyear'] is None or \
                 not 'caseseqnr' in entry or entry['caseseqnr'] is None:
+#            if entry['caseid'] is None:
+#                print "Strange entry, skipping: ", entry
+#                continue
             entry['caseyear'], entry['caseseqnr'] = entry['caseid'].split("/")
 
         entry['scraper'] = scraper
@@ -181,6 +185,13 @@ def populate_from_scraper(dbcursor, scraper):
             raise
     return len(data)
 
+def populate_from_scraper(dbcursor, scraper):
+    ret = populate_from_scraper_real(dbcursor, scraper)
+    if ret is None:
+        time.sleep(10)
+        ret = populate_from_scraper_real(dbcursor, scraper)
+    return ret
+
 def verify_all_data_is_transfered(dbcursor, scraper):
     sql = "SELECT COUNT(*) FROM %s WHERE scraper = '%s'" % (dbtable, scraper)
     dbcursor.execute(sql, (scraper,))
@@ -188,11 +199,14 @@ def verify_all_data_is_transfered(dbcursor, scraper):
     if res is not None:
         sqlcount = res
         url="https://api.scraperwiki.com/api/1.0/scraper/getinfo?format=jsondict&name=%s&version=-1" % scraper
-        jsondata = urllib2.urlopen(url)
-        data = json.load(jsondata)
-        swcount = data[0]['datasummary']['tables']['swdata']['count']
-        if swcount != sqlcount:
-            print "warning: %d records in SQL table do not match %d records in source (diff %d)" % (sqlcount, swcount, swcount - sqlcount)
+	try:
+            jsondata = urllib2.urlopen(url)
+            data = json.load(jsondata)
+            swcount = data[0]['datasummary']['tables']['swdata']['count']
+            if swcount != sqlcount:
+                print "warning: %d records in SQL table do not match %d records in source (diff %d)" % (sqlcount, swcount, swcount - sqlcount)
+        except:
+            print "warning: Unable to verify the data transfered"
 
 def main():
     dbconn, dbcursor = db_connect()
@@ -200,11 +214,13 @@ def main():
         create_table(dbconn, dbcursor)
 
     scrapers = [
+        'postliste-mattilsynet',
 #        'postliste-arendal',   # Missing caseid, casedesc etc.
 #        'postliste-lindesnes', # Missing caseid, casedesc etc.
 #        'postliste-hvaler', # kommune # parsefeil
 
 #        'postliste-hole',      # Missing casedocseq
+        'postliste-lenvik',
         'postlist-ssb',
         'postliste-ballangen', # kommune  # Inconsistent dataset before 2006?
         'postliste-difi',
@@ -213,8 +229,8 @@ def main():
         'postliste-halden', # kommune
         'postliste-hoegskolen-i-finnmark',
         'postliste-hoegskolen-i-gjoevik',
-        'postliste-hoegskolen-i-hamar',
-#        'postliste-hoegskolen-i-hedmark', # replaces -i-hamar
+#        'postliste-hoegskolen-i-hamar',
+        'postliste-hoegskolen-i-hedmark', # replaces -i-hamar
         'postliste-hoegskolen-i-buskerud',
         'postliste-hoegskolen-i-lillehammer',
         'postliste-hoegskolen-i-nord-troendelag',
@@ -234,7 +250,6 @@ def main():
         'postliste-nih',
         'postliste-npolar',
         'postliste-ntnu',
-        'postliste-oep',
         'postliste-oslo-bydel-ullern', # kommune
         'postliste-oslo-gravferdsetaten', # kommune
         'postliste-oslo-havn', # kommune
@@ -250,6 +265,7 @@ def main():
         'postliste-universitetet-i-oslo',
         'postliste-universitetet-i-stavanger',
         'postliste-universitetssykehuset-nord-norge',
+        'postliste-oep',
     ]
 
     for scraper in scrapers:
