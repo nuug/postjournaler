@@ -45,12 +45,12 @@ def process_page_queue(parser, errors):
         errors.append("Processing pages interrupted")
 
 def process_journal_pdfs(parser, listurl, errors):
-#    print "Finding PDFs on " + listurl
+    print "Finding PDFs on " + listurl
 #    u = urllib.parse.urlparse(listurl)
     html = scraperwiki.scrape(listurl)
     root = lxml.html.fromstring(html)
     html = None
-    for ahref in root.cssselect("div.vedlegg a"):
+    for ahref in root.cssselect("div.attachments a"):
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
         if -1 != href.find("file://") or -1 == url.find(".pdf"):
