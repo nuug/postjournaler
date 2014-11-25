@@ -4,6 +4,10 @@
 # the scrapers to be tested locally.
 
 file=$1
-export PYTHONPATH=`pwd`/testlib
 
-python $file
+topdir=`pwd`
+
+export PYTHONPATH=`pwd`/testlib/scraperwiki-python:`pwd`/testlib/dumptruck
+
+mkdir -p data/$1
+(cd data/$file ; python $topdir/scrapersources/$file)
