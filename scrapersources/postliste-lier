@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 # YAML-tagger:
 #  Type: kommune
-#  Status: finished
+#  Status: unfinished
 #  Name: Lier kommune
-#  Format: PDF
-#  Datatype: ?
-#  Vendor: ?
+#  Format: HTML
+#  Datatype: ePhorte
+#  Vendor: Ergo
 #  Run: daily
+
+# Before 2014-09 the format was PDF
 
 import scraperwiki
 import json
