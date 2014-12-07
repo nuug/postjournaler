@@ -7,6 +7,7 @@
 #  Datatype: ePhorte
 #  Vendor: Ergo
 #  Publish duration: 12 weeks
+#  Run: daily
 
 import scraperwiki
 import json
@@ -18,7 +19,7 @@ import resource
 import sys
 import urlparse
 import re
-scraperwiki.scrape('http://www2.ruter.no/verdt-a-vite/presse/offentlig-journal/')
+scraperwiki.scrape('https://ruter.no/verdt-a-vite%2Fpresse%2Foffentlig-journal%2F')
 lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
@@ -84,7 +85,7 @@ parser = postlistelib.PDFJournalParser(agency=agency)
 
 #test_small_pdfs(parser)
 
-process_journal_pdfs(parser, "http://www2.ruter.no/verdt-a-vite/presse/offentlig-journal/", errors)
+process_journal_pdfs(parser, "https://ruter.no/verdt-a-vite%2Fpresse%2Foffentlig-journal%2F", errors)
 process_page_queue(parser, errors)
 report_errors(errors)
 
