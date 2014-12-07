@@ -18,7 +18,7 @@ import dateutil.parser
 import lxml.html
 import urlparse
 
-scraperwiki.scrape("http://www.lier.kommune.no/no/Tjenesteomrader-/Oversikter/Postlister---Offentlig-journal/")
+scraperwiki.scrape("http://www.lier.kommune.no/politikk-og-samfunnsutvikling/motekalender/")
 
 lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
@@ -59,7 +59,7 @@ def process_journal_pdfs(parser, listurl, errors):
     html = scraperwiki.scrape(listurl)
     root = lxml.html.fromstring(html)
     html = None
-    for ahref in root.cssselect("div.fullwidth a"):
+    for ahref in root.cssselect("div.arrow-list-parent a"):
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
         if -1 != href.find("file://") or -1 == href.find(".pdf"):
@@ -85,7 +85,7 @@ parser = postlistelib.PDFJournalParser(agency=agency)
 
 #test_small_pdfs(parser)
 
-process_journal_pdfs(parser, "http://www.lier.kommune.no/no/Tjenesteomrader-/Oversikter/Postlister---Offentlig-journal/", errors)
+process_journal_pdfs(parser, "http://www.lier.kommune.no/politikk-og-samfunnsutvikling/motekalender/", errors)
 process_page_queue(parser, errors)
 report_errors(errors)
 
