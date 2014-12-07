@@ -1,5 +1,12 @@
-# -*- coding: UTF-8 -*-
-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: helseinstitusjon
+#  Status: finished
+#  Name: Universitetssykehuset Nord-norge
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Run: daily
 
 import scraperwiki
 import json

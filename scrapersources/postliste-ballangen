@@ -3,6 +3,9 @@
 #  Type: kommune
 #  Status: finished
 #  Name: Ballangen kommune
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
 #  Run: daily
 
 import scraperwiki

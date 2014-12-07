@@ -1,4 +1,13 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: center
+#  Status: unfinished
+#  Name: Mattilsynet
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Run: daily
+#  Missingfields: recorddate
 
 import scraperwiki
 import json

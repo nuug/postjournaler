@@ -1,4 +1,12 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: statlig
+#  Status: finished
+#  Name: Offentlig Elektronisk postjournal
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Run: hourly
 
 import scraperwiki
 import lxml.html

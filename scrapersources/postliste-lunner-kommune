@@ -3,7 +3,11 @@
 #  Type: kommune
 #  Status: finished
 #  Name: Lunner kommune
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
 #  Run: daily
+#  Missingfields: casedesc journalseqnr journalyear journalid
 
 import scraperwiki
 import urllib2
