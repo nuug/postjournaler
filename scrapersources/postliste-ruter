@@ -1,4 +1,12 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: unknown
+#  Status: finished
+#  Name: Ruter AS
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Publish duration: 12 weeks
 
 import scraperwiki
 import json
