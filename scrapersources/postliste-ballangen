@@ -257,19 +257,9 @@ parser = postlistelib.JournalParser(agency=agency)
 
 urllist = []
 
-def fetch_url(url):
-    html = None
-    for n in [1, 2, 3]:
-        try:
-            html = scraperwiki.scrape(url)
-            break
-        except urllib2.URLError, e:
-            print "URLError fetching " + url + ", trying again"
-    return html
-
 for monthurl in monthurls:
     print "Fetching month list from " + monthurl
-    html = fetch_url(monthurl)
+    html = postlistelib.fetch_url_harder(monthurl)
     urllist.extend(fetch_postjournal_monthlist(baseurl = baseurl, html = html))
 
 for dayurl in urllist:
@@ -277,7 +267,7 @@ for dayurl in urllist:
     if 0 < len(res):
         continue
     print "Fetching from " + dayurl
-    html = fetch_url(dayurl)
+    html = postlistelib.fetch_url_harder(dayurl)
 #    print html
     fetch_postjournal_day(parser=parser, url=dayurl, html=html, saver=saver)
 
