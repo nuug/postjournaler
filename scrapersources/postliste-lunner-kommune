@@ -1,0 +1,179 @@
+# -*- coding: utf-8 -*-
+
+import scraperwiki
+import urllib2
+import urlparse
+import lxml.html
+import re
+import dateutil.parser
+import datetime
+from dateutil.relativedelta import relativedelta
+
+agency = "Lunner kommune"
+starturl = "http://www.lunner.kommune.no/postlister.298000.no.html"
+
+scraperwiki.scrape(starturl)
+postlistelib=scraperwiki.swimport('postliste-python-lib')
+
+def saver(unique_keys, data):
+#    return
+    #print "Not saving data"
+    scraperwiki.sqlite.save(unique_keys, data)
+
+def expand_year(year):
+    year = int(year)
+    if year > 50:
+        year = year + 1900
+    else:
+        year = year + 2000
+    return year
+
+def fetch_postjournal_day(parser, url, html, saver):
+    root = lxml.html.fromstring(html)
+#    print html
+    listdate = dateutil.parser.parse(root.cssselect("h2")[0].text_content().replace("Postliste for ",""), dayfirst=True)
+#    print listdate.date()
+    
+    entryqueue = []
+    for div in root.cssselect("div.innerbody div.postlistedokument div"):
+        tds = div.cssselect("div")
+        line = tds[0].text_content().strip(' \n\t\r')
+#	print "L: \"" + line + "\""
+        entryqueue.append(line)
+
+    entry = {}
+    entries = []
+    i = 0
+    while i < len(entryqueue) - 1:
+	if 'Datert:' == entryqueue[i]:
+            if 'Datert:' in entry:
+                entries.append(entry)
+            entry = {}
+        entry[entryqueue[i]] = entryqueue[i+1]
+        i = i + 1
+    entries.append(entry)
+
+    datastore = []
+    for entry in entries:
+#        print entry
+        recorddate = dateutil.parser.parse(entry['Regdato:'].strip(), dayfirst=True)
+        docdate = dateutil.parser.parse(entry['Datert:'].strip(), dayfirst=True)
+        docdesc = entry['Dokbesk:'].strip()
+        # FIXME sakstittel mangler i webjournal
+        casedesc = '[sakstittel mangler]'
+        doctype = entry['Doktype:']
+        doctype = {
+            u'Utgående'    : 'U',
+            u'Innkommende' : 'I',
+            u'Internt'     : 'N',
+            }[doctype]
+        docdesc = entry['Dokbesk:']
+        saksbehandler = entry['Saksbeh:'].strip()
+
+        arkivsaksref = entry['Saksnr:']
+        caseyear = 0
+        caseseqnr = 0
+        casedocseq = 0
+        caseid = 'unknown'
+        matchObj = re.match( r'(\d+)/(\d+)-(\d+)$', arkivsaksref, re.M|re.I)
+        if matchObj:
+            caseyear = matchObj.group(1)
+            caseseqnr = matchObj.group(2)
+            casedocseq = matchObj.group(3)
+            caseyear = expand_year(caseyear)
+            caseid = str(caseyear) + "/" + str(caseseqnr)
+        else:
+            print "error: invalid Arkivsaksnr: " + arkivsaksref
+            raise Exception("Unable to parse %s" % url)
+
+        if parser.is_sender_doctype(doctype) and 'N' is not doctype:
+            fratilfield = 'sender'
+            fratil = entry['Avsender:']
+        elif parser.is_recipient_doctype(doctype):
+            fratilfield = 'recipient'
+            fratil = entry['Mottaker:']
+        else:
+            fratilfield = 'intern'
+            fratil = None
+
+        exemption = None
+        if 'Gradering:' in entry:
+            exemption = entry['Gradering:']
+            fratil = ""
+
+        data = {
+            'agency' : parser.agency,
+            'recorddate' : recorddate.date(),
+            'docdate' : docdate.date(),
+            'docdesc' : docdesc,
+            'casedesc' : casedesc,
+
+            'caseyear' : int(caseyear),
+            'caseseqnr' : int(caseseqnr),
+            'casedocseq' : int(casedocseq),
+            'caseid' : caseid,
+            'doctype' : doctype,
+
+#            'journalseqnr' : int(journalseqnr),
+#            'journalyear' : int(journalyear),
+#            'journalid' : journalid,
+
+            'saksbehandler' : saksbehandler,
+#            'saksansvarlig' : saksansvarlig.strip(),
+#            'saksansvarligenhet' : saksansvarligenhet.strip(),
+
+            'arkivsaksref' : arkivsaksref,
+#            'laapenr' : laapenr,
+
+            'scrapedurl' : url,
+            'scrapestamputc' : datetime.datetime.now()
+        }
+        if fratil is not None:
+            data[fratilfield] = fratil
+        if exemption is not None:
+            data['exemption'] = exemption
+
+        print data
+        parser.verify_entry(data)
+        datastore.append(data)
+    saver(unique_keys=['arkivsaksref'], data=datastore)
+
+def parse_day_urls(starturl, urllist):
+    html = scraperwiki.scrape(starturl)
+    root = lxml.html.fromstring(html)
+    for ahref in root.cssselect("a.headlinelink"):
+        href = ahref.attrib['href']
+        url = urlparse.urljoin(starturl, href)
+        urllist.append(url)
+        
+    nexturls = root.cssselect("a.next")
+    for ahref in nexturls:
+        href = ahref.attrib['href']
+        if -1 != href.find("cat="):
+            print href
+            parse_day_urls(urlparse.urljoin(starturl, href), urllist)
+    return urllist
+
+print "Fetching public journal!"
+
+parser = postlistelib.JournalParser(agency=agency)
+
+urllist = []
+parse_day_urls(starturl, urllist)
+
+for dayurl in urllist:
+
+    # Only parse once
+    try:
+        res = scraperwiki.sqlite.select("scrapedurl from swdata where scrapedurl = '"+dayurl+"' limit 1")
+        if 0 < len(res):
+            continue
+    except Exception, e: # Probably no table yet
+        pass
+
+    print
+    print "Fetching from " + dayurl
+    print
+    html = postlistelib.fetch_url_harder(dayurl)
+#    print html
+    fetch_postjournal_day(parser=parser, url=dayurl, html=html, saver=saver)
