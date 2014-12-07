@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: finished
+#  Name: Ballangen kommune
+#  Run: daily
 
 import scraperwiki
 import urllib2
