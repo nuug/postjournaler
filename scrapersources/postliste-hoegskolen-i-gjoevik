@@ -1,4 +1,13 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: høgskole
+#  Status: finished
+#  Name: Høgskolen i Gjøvik
+#  Format: PDF
+#  Datatype: ePhorte
+#  Publish duration: unlimited
+#  Run: daily
+
 # Based on the scraper advanced-scraping-pdf
 # See also
 # https://views.scraperwiki.com/run/pdf-to-html-preview-1/?url=http%3A%2F%2Fwww.stortinget.no%2FGlobal%2Fpdf%2Fpostjournal%2Fpj-2012-05-09.pdf
@@ -24,7 +33,7 @@ scraperwiki.scrape("http://www.hig.no/om_hig/offentleg_journal")
 lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
-agency = 'Høgskolen i Gjøvik'
+agency = u'Høgskolen i Gjøvik'
 
 def report_errors(errors):
     if 0 < len(errors):
