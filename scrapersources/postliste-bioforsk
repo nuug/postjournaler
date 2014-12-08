@@ -1,4 +1,13 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# FIXME: This source uses an unsupported PDF format.
+# YAML-tagger:
+#  Type: unknown
+#  Status: unfinished
+#  Name: Bioforsk
+#  Format: PDF
+#  Datatype: ?
+#  Vendor: ?
+#  Run: daily
 
 import scraperwiki
 import json

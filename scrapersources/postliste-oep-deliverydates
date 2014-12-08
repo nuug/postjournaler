@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: statlig
+#  Status: finished
+#  Name: Offentlig Elektronisk postjournal delivery dates
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Run: hourly
+
 import scraperwiki
 import lxml.html
 import datetime

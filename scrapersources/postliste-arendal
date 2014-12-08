@@ -1,4 +1,12 @@
 # coding=utf-8
+# YAML-tagger:
+#  Type: kommune
+#  Status: unfinished
+#  Name: Arendal kommune
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Missingfields: caseid, casedesc, etc
 
 import scraperwiki
 

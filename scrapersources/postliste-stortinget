@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: statlig
+#  Status: finished
+#  Name: Stortinget
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Run: daily
+
 # Based on the scraper advanced-scraping-pdf
 # See also 
 # https://views.scraperwiki.com/run/pdf-to-html-preview-1/?url=http%3A%2F%2Fwww.stortinget.no%2FGlobal%2Fpdf%2Fpostjournal%2Fpj-2012-05-09.pdf
