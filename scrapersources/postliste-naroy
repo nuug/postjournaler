@@ -6,6 +6,7 @@
 #  Format: PDF
 #  Datatype: ePhorte
 #  Vendor: Ergo
+#  Publish duration: 30 days
 #  Run: daily
 
 import scraperwiki
