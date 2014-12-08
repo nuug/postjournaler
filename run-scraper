@@ -5,9 +5,11 @@
 
 file=$1
 
-topdir=`pwd`
+topdir=$(cd $(dirname $0); pwd)
 
 export PYTHONPATH=`pwd`/testlib/scraperwiki-python:`pwd`/testlib/dumptruck
 
-mkdir -p data/$1
-(cd data/$file ; python $topdir/scrapersources/$file)
+SCRAPERWIKI_DATABASE_NAME=sqlite:///$file.sqlite
+export SCRAPERWIKI_DATABASE_NAME
+
+(cd data ; python $topdir/scrapersources/$file)
