@@ -1,4 +1,14 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: unfinished
+#  Name: Hole kommune
+#  Format: HTML
+#  Datatype: 
+#  Publish duration: ?
+#  Run: not yet
+#  Missingfields: casedocseq
+
 import scraperwiki
 import lxml.html
 import datetime

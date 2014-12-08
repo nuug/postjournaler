@@ -1,4 +1,12 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: fylkeskommune
+#  Status: finished
+#  Name: Møre og Romsdals fylkeskommune
+#  Format: ?
+#  Datatype: ?
+#  Publish duration: 
+#  Run: ?
 
 import scraperwiki
 import json
