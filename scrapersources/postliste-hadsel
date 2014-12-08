@@ -1,4 +1,12 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: finished
+#  Name: Hadsel kommune
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Run: daily
 
 import scraperwiki
 from BeautifulSoup import BeautifulSoup

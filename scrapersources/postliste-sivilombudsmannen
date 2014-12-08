@@ -1,4 +1,13 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: unknown
+#  Status: finished
+#  Name: Sivilombudsmannen
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Publish duration: 10 days
+#  Run: daily
 
 import scraperwiki
 import json
