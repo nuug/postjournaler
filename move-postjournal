@@ -218,6 +218,7 @@ def main():
         create_table(dbconn, dbcursor)
 
     scrapers = [
+        'postliste-lunner-kommune',
         'postliste-mattilsynet',
 #        'postliste-arendal',   # Missing caseid, casedesc etc.
 #        'postliste-lindesnes', # Missing caseid, casedesc etc.
