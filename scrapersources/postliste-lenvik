@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: finished
+#  Name: Lenvik kommune
+#  Format: HTML
+#  Run: daily
+#  Missingfields: casedesc
 
 import scraperwiki
 import urllib2
@@ -170,4 +177,3 @@ for dayurl in urllist:
     print 'Fetching ' + dayurl
     html = postlistelib.fetch_url_harder(dayurl)
     fetch_postjournal_day(parser=parser, url=dayurl, html=html, saver=saver)
-
