@@ -19,6 +19,11 @@ import urllib2
 # Try several times as the database get bigger
 writetries = 8
 
+# Try several times if there is a problem with the service
+readtries = 3
+
+read_backwards = False
+
 # http://www.oep.no/search/resultSingle.html?journalPostId=1000000
 # http://www.oep.no/search/resultSingle.html?journalPostId=3889259
 
@@ -106,8 +111,11 @@ def cpu_spent():
     usage = resource.getrusage(resource.RUSAGE_SELF)
     return getattr(usage, 'ru_utime') + getattr(usage, 'ru_stime')
 
+def cpu_available():
+    return resource.getrlimit(resource.RLIMIT_CPU)[0]/2 - 1
+
 def url_from_id(id):
-    return "http://www.oep.no/search/resultSingle.html?journalPostId=" + str(id)
+    return "https://www.oep.no/search/resultSingle.html?journalPostId=" + str(id)
 
 def save(data):
     problem = False
@@ -164,6 +172,7 @@ doctypemap = {
 
 def fetch_oep_entry(id, datastorage):
     oepurl = url_from_id(id)
+#    print "Fetching %s" % oepurl
     html = scraperwiki.scrape(oepurl)
     root = lxml.html.fromstring(html.decode('utf-8'))
     data = { 'journalPostId' : id }
@@ -194,6 +203,7 @@ def fetch_oep_entry(id, datastorage):
     return 0
 
 def fetch_range(datastorage, first, last, step):
+    global readtries
     myskiplimit = skiplimit
     skipped = 0
     fetched = 0
@@ -202,7 +212,7 @@ def fetch_range(datastorage, first, last, step):
         if id < 0:
             break
         try:
-            tries = 3
+            tries = readtries
             while 0 < tries:
                 tries = tries - 1
                 try:
@@ -223,12 +233,14 @@ def fetch_range(datastorage, first, last, step):
                         myskiplimit = skiplimit
                         break
                 except urllib2.HTTPError, e: # Because HTTPError lack reason due to bug
-                    print "URLError triggered for url " + url_from_id(id) + ", trying again: " + str(e.msg)
+                    print "HTTPError triggered for url " + url_from_id(id) + ", trying again: " + str(e.msg)
                 except urllib2.URLError, e:
                     print "URLError triggered for url " + url_from_id(id) + ", trying again: " + str(e.reason)
                 except httplib.BadStatusLine, e:
                     # e.msg do not exist.  trying .reason 2012-06-25
                     print "BadStatusLine triggered for url " + url_from_id(id) + ", trying again: " + str(e.reason)
+            if 0 == tries:
+                raise urllib2.URLError("unable to talk to service, giving up.")
 
             if skipped >= myskiplimit:
                 print "Reached end of list, exiting at " + str(id)
@@ -243,7 +255,7 @@ def fetch_range(datastorage, first, last, step):
                     min_id = id
 #                    print "Updating min_id to " + str(min_id)
                     save_var('min_tested_id', min_id)
-                if cpu_spent() > 79:
+                if cpu_spent() > cpu_available():
                     print "Running short on CPU time, exiting at " + str(id)
                     break
             time.sleep(0.2)
@@ -357,9 +369,10 @@ try:
 except scraperwiki.sqlite.SqliteError:
     pass
 
-fetched = fetch_range(datastorage, max + 1, max + count, 1)
+fetched = 0
+fetched = fetched + fetch_range(datastorage, max + 1, max + count, 1)
 print "Fetched " + str(fetched) + " new journal entries, cpu spent: " + str(cpu_spent())
-if min >= 0:
+if min >= 0 and read_backwards:
     fetched = fetch_range(datastorage, min, min - count, -1)
     print "Fetched " + str(fetched) + " old journal entries, cpu spent: " + str(cpu_spent())
 
