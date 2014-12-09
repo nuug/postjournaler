@@ -15,10 +15,6 @@ import resource
 import dateutil.parser
 import resource
 
-def cpu_spent():
-    usage = resource.getrusage(resource.RUSAGE_SELF)
-    return getattr(usage, 'ru_utime') + getattr(usage, 'ru_stime')
-
 def fetch_oep_deliverydates(url, datastorage):
     html = scraperwiki.scrape(url)
     root = lxml.html.fromstring(html.decode('utf-8'))
@@ -39,11 +35,11 @@ def fetch_oep_deliverydates(url, datastorage):
             datastorage.append(data)
     return 0
 
+print "Starting to fetch journal delivery dates " + str(datetime.datetime.now())
+
 datastorage = []
 #fetch_oep_deliverydates("http://www.oep.no/pub/faces/statistikk.jsp?reposId=3", datastorage)
 # New url before 2012-11-09
 fetch_oep_deliverydates("http://www.oep.no/pub/report.xhtml?reportId=3", datastorage)
-print datastorage
+#print datastorage
 scraperwiki.sqlite.save(unique_keys=['agency', 'deliverydate'], data=datastorage)
-
-print "Starting to fetch journal delivery dates " + str(datetime.datetime.now())
