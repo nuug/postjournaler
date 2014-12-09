@@ -123,6 +123,12 @@ def fetch_postjournal_day(parser, url, html, saver):
                 caseyear = expand_year(matchObj.group(1))
                 caseseqnr = matchObj.group(2)
                 caseid = str(caseyear) + "/" + str(caseseqnr)
+            else:
+                matchObj = re.match( r'/\s*-\s*(\S+)', arkivsaksref, re.M|re.I)
+                if matchObj:
+                    doctype = matchObj.group(1)
+                else:
+                    print "error: really broken Arkivsaksnr: %s" % arkivsaksref
 
         laapenr = re.sub(r"^.+L.penr.:", "", ref)
         journalseqnr = 0
@@ -140,6 +146,7 @@ def fetch_postjournal_day(parser, url, html, saver):
                 'S'   : 'N',
                 'PLN' : 'N',
                 'Z'   : 'N',
+                'UB'  : 'U',
             }[doctype]
 
         fratil = queue.popleft().replace("Fra/Til:", "").strip()
@@ -149,7 +156,8 @@ def fetch_postjournal_day(parser, url, html, saver):
              fratilfield = 'recipient'
 
         saksbehandler = queue.popleft().replace("Saksbehandler:","").strip()
-        saksansvarlig, bar = saksbehandler.split(" (")
+        saksansvarlig, bar = saksbehandler.split("(")
+        saksansvarlig = saksansvarlig.strip()
         saksansvarligenhet, foo = bar.split(")")
         #print saksansvarligenhet
 
@@ -234,14 +242,14 @@ def addyear(monthurls, year):
 #addyear(monthurls, 2011)
 #addyear(monthurls, 2012)
 
-parsemonths = 2
+parsemonths = 36
 
 today = datetime.date.today()
 i  = 1
 while i <= parsemonths:
     i = i + 1
 #    parsemonths = parsemonths - 1
-    monthtoparse = today + relativedelta(months=parsemonths - i)
+    monthtoparse = today - relativedelta(months=(parsemonths - i))
     monthstr = monthtoparse.strftime("%m%Y")
     url = "http://www.ballangen.kommune.no/artikler/postlister?month=" + monthstr
     monthurls.append(url)
