@@ -336,6 +336,9 @@ def reparse_strange_entries(datastorage):
         if -1 == fetch_oep_entry(id, datastorage):
             print "Refetching %d failed, flush ID" % id
             scraperwiki.sqlite.execute("DELETE from swdata where journalPostId = %d" % id)
+            if 0 < len(datastorage):
+                save(data=datastorage)
+                datastorage = []
         else:
             print "Refetching %d" % id
         if 50 <= len(datastorage):
