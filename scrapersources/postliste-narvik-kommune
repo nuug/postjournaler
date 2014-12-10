@@ -1,0 +1,164 @@
+# coding=utf-8
+# YAML-tagger:
+#  Type: kommune
+#  Status: unfinished
+#  Name: Narvik kommune
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Missingfields: casedocseq
+
+import scraperwiki
+import urllib2
+import urlparse
+import lxml.html
+import dateutil.parser
+
+agency = "Narvik kommune"
+
+# Point scraperwiki GUI to the start page
+starturl = "https://www.narvik.kommune.no/innsyn/postliste/"
+
+scraperwiki.scrape(starturl)
+postlistelib=scraperwiki.swimport('postliste-python-lib')
+
+def saver(unique_keys, data):
+#    return
+    #print "Not saving data"
+    scraperwiki.sqlite.save(unique_keys, data)
+
+def expand_year(year):
+    year = int(year)
+    if year > 50:
+        year = year + 1900
+    else:
+        year = year + 2000
+    return year
+
+def fetch_postjournal_day(parser, url, html, saver):
+    root = lxml.html.fromstring(html)
+#    print html
+    
+    entryqueue = []
+    for div in root.cssselect("table.inner-max-width"):
+        trs = div.cssselect("tr")
+        for tr in trs:
+            field = tr.cssselect("th")[0].text_content().strip()
+            value = tr.cssselect("td")[0].text_content().strip()
+            print "F: %s V: %s" % (field, value)
+            entry[field] = value
+
+# F: DokumentID: V: 14/26261
+# F: ArkivsakID: V: 14/1861
+# F: Journaldato: V: 05.12.2014
+# F: Brevdato: V: 04.12.2014
+# F: Tittel på saken: V: Kommuneplanens arealdel - rullering
+# F: Tittel på dokumentet: V: Jernbaneverkets uttalelse -Forslag til planprogram for Kommuneplanens arealdel 2014 - 2025 og varsel om oppstart -Narvik kommune sendt fra Jernbaneverket
+# F: Dokumentansvarlig: V: Pedersen, Ingrid Sværd
+
+
+    docdesc = entry['Tittel på dokumentet:'].strip()
+    casedesc = entry['Tittel på saken:'].strip()
+
+
+    # doctype
+    root.cssselect("h1.header-head")
+
+    # recipient
+    root.cssselect("div.dokmottakere")
+
+    return
+    if False:
+        data = {
+            'agency' : parser.agency,
+            'recorddate' : recorddate.date(),
+            'docdate' : docdate.date(),
+            'docdesc' : docdesc,
+            'casedesc' : casedesc,
+
+            'caseyear' : int(caseyear),
+            'caseseqnr' : int(caseseqnr),
+            'casedocseq' : int(casedocseq),
+            'caseid' : caseid,
+            'doctype' : doctype,
+
+#            'journalseqnr' : int(journalseqnr),
+#            'journalyear' : int(journalyear),
+#            'journalid' : journalid,
+
+            'saksbehandler' : saksbehandler,
+#            'saksansvarlig' : saksansvarlig.strip(),
+#            'saksansvarligenhet' : saksansvarligenhet.strip(),
+
+            'arkivsaksref' : arkivsaksref,
+#            'laapenr' : laapenr,
+
+            'scrapedurl' : url,
+            'scrapestamputc' : datetime.datetime.now()
+        }
+        if fratil is not None:
+            data[fratilfield] = fratil
+        if exemption is not None:
+            data['exemption'] = exemption
+
+        print data
+        parser.verify_entry(data)
+        datastore.append(data)
+    saver(unique_keys=['arkivsaksref'], data=datastore)
+
+def parse_day_urls(starturl, urllist):
+    html = scraperwiki.scrape(starturl)
+    root = lxml.html.fromstring(html)
+    for ahref in root.cssselect("a.headlinelink"):
+        href = ahref.attrib['href']
+        url = urlparse.urljoin(starturl, href)
+        urllist.append(url)
+        
+    nexturls = root.cssselect("a.next")
+    for ahref in nexturls:
+        href = ahref.attrib['href']
+        if -1 != href.find("cat="):
+            print href
+            parse_day_urls(urlparse.urljoin(starturl, href), urllist)
+    return urllist
+
+print "Fetching public journal!"
+
+parser = postlistelib.JournalParser(agency=agency)
+
+urllist = []
+parse_day_urls(starturl, urllist)
+
+entryurl = "https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_detaljer&journalpostid=2014026261&scripturi=/innsyn.aspx&skin=infolink&Mid1=1543&"
+
+html = postlistelib.fetch_url_harder(entryurl)
+print html
+fetch_postjournal_day(parser=parser, url=entryurl, html=html, saver=saver)
+exit(0)
+
+#https://www.narvik.kommune.no/artikkel.aspx?MId1=6&AId=45
+
+#https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_postliste&MId1=101
+
+#https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_postliste&MId1=101&scripturi=/innsyn.aspx&skin=infolink&fradato=2013-04-09T00:00:00
+#https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_postliste&MId1=101&scripturi=/innsyn.aspx&skin=infolink&fradato=2013-04-09T00:00:00&startrow=10
+
+#https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_detaljer&journalpostid=2013006498&scripturi=/innsyn.aspx&skin=infolink&Mid1=101&
+
+
+for dayurl in urllist:
+
+    # Only parse once
+    try:
+        res = scraperwiki.sqlite.select("scrapedurl from swdata where scrapedurl = '"+dayurl+"' limit 1")
+        if 0 < len(res):
+            continue
+    except Exception, e: # Probably no table yet
+        pass
+
+    print
+    print "Fetching from " + dayurl
+    print
+    html = postlistelib.fetch_url_harder(dayurl)
+#    print html
+    fetch_postjournal_day(parser=parser, url=dayurl, html=html, saver=saver)
