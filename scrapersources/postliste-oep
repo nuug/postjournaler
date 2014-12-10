@@ -327,6 +327,24 @@ def remove_original():
     scraperwiki.sqlite.commit()
     exit(0)
 
+# Fetch again some crap entries that ended up in the database when the
+# script was slightly broken and filled in non-existing entries in the
+# SQL database.
+def reparse_strange_entries(datastorage):
+    for idref in scraperwiki.sqlite.select("journalPostId FROM swdata WHERE caseid IS NULL"):
+    	id = idref['journalPostId']
+        if -1 == fetch_oep_entry(id, datastorage):
+            print "Refetching %d failed, flush ID" % id
+            scraperwiki.sqlite.execute("DELETE from swdata where journalPostId = %d" % id)
+        else:
+            print "Refetching %d" % id
+        if 50 <= len(datastorage):
+            save(data=datastorage)
+            datastorage = []
+    if 0 < len(datastorage):
+        save(data=datastorage)
+        datastorage = []
+
 #update_caseyear()
 
 #create_indexes()
@@ -340,6 +358,8 @@ def remove_original():
 print "Starting to fetch journal entries " + str(datetime.datetime.now())
 scraperwiki.scrape("http://www.oep.no/")
 datastorage = []
+
+reparse_strange_entries(datastorage)
 
 # Update entries to handle <URL: https://rt.nuug.no:443/Ticket/Display.html?id=6342 >.
 # Used 2012-09-17
@@ -380,7 +400,7 @@ if min >= 0 and read_backwards:
 rescan_min = scraperwiki.sqlite.get_var('min_rescan_id')
 if rescan_min is None:
     rescan_min = 0
-rescan_count = 3000
+rescan_count = 5000
 if rescan_min < max:
     end = rescan_min + rescan_count
     fetched = fetch_range(datastorage, rescan_min, end, 1)
