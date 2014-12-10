@@ -30,7 +30,7 @@ scraperwiki.scrape("http://www.hint.no/aktuelt/offentlig_postjournal")
 lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
-agency = 'Høgskolen i Nord-Trøndelag'
+agency = u'Høgskolen i Nord-Trøndelag'
 
 def report_errors(errors):
     if 0 < len(errors):
