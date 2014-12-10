@@ -62,7 +62,7 @@ def process_journal_pdfs(parser, listurl, errors):
     for ahref in root.cssselect("div.month-entry-title a"):
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
-        print url
+#        print url
         if -1 != href.find("file://"):
 #            print "Skipping non-http URL " + url
             continue
@@ -96,7 +96,7 @@ parser = postlistelib.PDFJournalParser(agency=agency)
 
 process_page_queue(parser, errors)
 process_journal_pdfs(parser, "http://www.unn.no/offentlig-postjournal/category8944.html", errors)
-for year in range(2011, 2007, -1):
+for year in range(2013, 2007, -1):
     process_journal_pdfs(parser, "http://www.unn.no/offentlig-postjournal/category8944.html?year=" + str(year), errors)
 process_page_queue(parser, errors)
 report_errors(errors)
