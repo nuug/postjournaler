@@ -27,7 +27,7 @@ scraperwiki.scrape("http://www.nih.no/om-nih/aktuelt/offentlig-postjournal/")
 lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
-agency = 'Norges idrettshøgskole'
+agency = u'Norges idrettshøgskole'
 
 def report_errors(errors):
     if 0 < len(errors):
