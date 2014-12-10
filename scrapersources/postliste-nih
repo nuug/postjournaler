@@ -1,4 +1,14 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: høgskole
+#  Status: finished
+#  Name: Norges idrettshøgskole
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Publish duration: 3 months
+#  Run: daily
+#  Missingfields: casedesc
 
 import scraperwiki
 import json
