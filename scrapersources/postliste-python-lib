@@ -41,10 +41,10 @@ def exit_if_no_cpu_left(retval, callback=None, arg = None):
     import resource
     soft, hard = resource.getrlimit(resource.RLIMIT_CPU)
     spent = cpu_spent()
-    if soft < spent:
+    if -1 != soft and soft < spent:
         if callback is not None:
             callback(arg, spent, hard, soft)
-        print "Running out of CPU, exiting."
+        print "Running out of CPU (%d < %d), exiting." % (soft, spent)
         exit(retval)
 
 def fetch_url_harder(url, scraper = None):
