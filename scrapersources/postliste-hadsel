@@ -7,6 +7,7 @@
 #  Datatype: ePhorte
 #  Vendor: Ergo
 #  Run: daily
+#  Publish duration: 3 months
 
 import scraperwiki
 from BeautifulSoup import BeautifulSoup
@@ -53,12 +54,13 @@ def process_page_queue(parser, errors):
 def consider_url(parser, url, errors):
     if parser.is_already_scraped(url):
         True
-#            print "Skipping already scraped " + url
+#        print "Skipping already scraped " + url
     else:
-#            print "Will process " + url
+#        print "Will process " + url
         try:
             process_pdf(parser, url, errors)
-        except:
+        except Exception, e:
+            print "Processing PDF on %s failed:" % url, e
             pass
 
 def process_journal_pdfs(parser, listurl, errors, recurse):
@@ -67,12 +69,12 @@ def process_journal_pdfs(parser, listurl, errors, recurse):
     html = scraperwiki.scrape(listurl)
     root = lxml.html.fromstring(html)
     html = None
-    for ahref in root.cssselect("div.items a"):
+    for ahref in root.cssselect("div.items a.doclink"):
         url = urlparse.urljoin(listurl, ahref.attrib['href'])
-        if -1 == url.find("doc_download"):
+        if -1 == url.find("doc_download") or -1 != url.find("docman"):
             continue
+#        print url
         consider_url(parser, url, errors)
-        #print url
     for ahref in root.cssselect("div.item-list a"):
         suburl = urlparse.urljoin(listurl, ahref.attrib['href'])
         #print "sub " + suburl
