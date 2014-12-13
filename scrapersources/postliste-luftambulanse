@@ -1,4 +1,13 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: unknown
+#  Status: unfinished
+#  Name: Norsk Luftambulanse
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Run: daily
+#  Publish duration: unlimited
 
 import scraperwiki
 import json
@@ -78,7 +87,9 @@ parser = postlistelib.PDFJournalParser(agency=agency)
 #test_small_pdfs(parser)
 
 #process_page_queue(parser, errors)
-process_journal_pdfs(parser, "http://www.luftambulanse.no/postjournal_2012.aspx", errors)
+process_journal_pdfs(parser, "http://www.luftambulanse.no/postjournal-2014", errors)
+process_journal_pdfs(parser, "http://www.luftambulanse.no/postjournal_2013", errors)
+process_journal_pdfs(parser, "http://www.luftambulanse.no/postjournal_2012", errors)
 process_journal_pdfs(parser, "http://www.luftambulanse.no/postjournal_2011.aspx", errors)
 process_journal_pdfs(parser, "http://www.luftambulanse.no/postjournal_2010.aspx", errors)
 process_journal_pdfs(parser, "http://www.luftambulanse.no/postjournal_2009.aspx", errors)
