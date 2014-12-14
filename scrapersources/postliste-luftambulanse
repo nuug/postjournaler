@@ -40,8 +40,8 @@ def process_pdf(parser, pdfurl, errors):
         pdfcontent = scraperwiki.scrape(pdfurl)
         parser.preprocess(pdfurl, pdfcontent)
         pdfcontent = None
-#    except ValueError, e:
-#        errors.append(e)
+    except ValueError, e:
+        errors.append(e)
     except IndexError, e:
         errors.append(e)
 
@@ -53,24 +53,24 @@ def process_page_queue(parser, errors):
         errors.append("Processing pages interrupted")
 
 def process_journal_pdfs(parser, listurl, errors):
-#    print "Finding PDFs on " + listurl
+    print "Finding PDFs on " + listurl
 #    u = urllib.parse.urlparse(listurl)
     html = scraperwiki.scrape(listurl)
     root = lxml.html.fromstring(html)
     html = None
-    for ahref in root.cssselect("table a"):
+    for ahref in root.cssselect("div.field-items a"):
         if not 'href' in ahref.attrib:
             continue
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href).replace(" ", "%20")
-        if -1 != href.find("file://") or -1 == url.find(".pdf") or -1 == url.find('/Postjournal'):
-#            print "Skipping non-http URL " + url
+        if -1 != href.find("file://") or -1 == url.find(".pdf"):
+            print "Skipping non-http URL " + url
             continue
         if parser.is_already_scraped(url):
             True
-#            print "Skipping already scraped " + url
+            print "Skipping already scraped " + url
         else:
-#            print "Will process " + url
+            print "Will process " + url
             process_pdf(parser, url, errors)
 
 def test_small_pdfs(parser):
