@@ -1,4 +1,15 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: høgskole
+#  Status: obsolete
+#  Name: Høgskolen i Finnmark
+#  Format: 
+#  Datatype: ?
+#  Vendor: ?
+#  Run: daily
+#  Publish duration: ?
+#
+# Slått sammen med Universitetet i Tromsø
 
 import scraperwiki
 import json
