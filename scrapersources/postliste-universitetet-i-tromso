@@ -232,7 +232,7 @@ urls = []
 urls.extend(find_day_urls(parser, 2014))
 urls.extend(find_day_urls(parser, 2015))
 for url in urls:
-    html = scraperwiki.scrape(url)
+    html = scraperwiki.scrape(url).decode('utf-8')
     fetch_postjournal_day(parser, url, html, saver=saver)
 
 process_journal_pdfs(parser, "http://uit.no/om/enhet/artikkel?p_document_id=382893&p_dimension_id=88216", errors)
