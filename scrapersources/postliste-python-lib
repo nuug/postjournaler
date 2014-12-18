@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Python library for parsing public post journals (postlister) in Norway.
 #
@@ -95,7 +95,7 @@ class JournalParser:
                 raise ValueError("Missing required field " + field)
 
         if not self.is_valid_doctype(entry['doctype']):
-            raise ValueError("Invalid doctype " + doctype)
+            raise ValueError("Invalid doctype " + entry['doctype'])
 
         if -1 != entry['caseid'].find('-'):
             raise ValueError("Field caseid should not include dash: " + entry['caseid'])
