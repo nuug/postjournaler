@@ -5,7 +5,7 @@
 #  Name: Narvik kommune
 #  Format: HTML
 #  Datatype: ?
-#  Vendor: ?
+#  Vendor: Visma
 #  Missingfields: casedocseq
 
 import scraperwiki
