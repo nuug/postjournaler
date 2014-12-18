@@ -109,6 +109,10 @@ def fetch_postjournal_day(parser, url, html, saver):
         docdesc = entrydata['Beskrivelse:'].strip()
         casedesc = entrydata['Sakstittel:']
         doctype = entrydata['Dokument type:']
+        if not parser.is_valid_doctype(doctype):
+            doctype = {
+                'S'   : 'X',
+            }[doctype]
 
         saksbehandler = entrydata['Saksbehandler:'].strip()
         saksansvarlig = entrydata['Ansvarlig:'].strip()
