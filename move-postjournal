@@ -260,6 +260,7 @@ def main():
 
     scrapers = [
         'postliste-oep',
+        'postliste-universitetet-i-tromso',
         'postliste-lunner-kommune',
         'postliste-mattilsynet',
 #        'postliste-arendal',   # Missing caseid, casedesc etc.
