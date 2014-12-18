@@ -202,7 +202,7 @@ def find_day_urls(parser, year):
 #                    print year, month, day, res['month'][daystr]
                     nordatestr = "%02d.%02d.%d" % (day, month, year)
                     htmlpagesize=100
-                    for page in range(int(count / htmlpagesize)+1):
+                    for page in range(int((count-1) / htmlpagesize)+1):
                         url="http://uit.no/samfunn/offjour?elementsprpage=%d&pageindex=%d&uitgyldigfra=%s&uitgyldigtil=%s&searchtitle=&searchinnhold=" % (htmlpagesize, page+1, nordatestr, nordatestr)
                         if not parser.is_already_scraped(url):
                             urls.append(url)
