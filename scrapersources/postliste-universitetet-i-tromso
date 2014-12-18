@@ -9,11 +9,11 @@
 #  Run: daily
 #
 # The PDF/ePhorte scraper is done, but the new HTML format is not yet
-# handled.
+# handled.  The HTML version is missing docdate, journalseqnr,
+# journalyear, journalid.
 
 import scraperwiki
 import json
-from BeautifulSoup import BeautifulSoup
 import datetime
 import dateutil.parser
 import lxml.html
@@ -77,6 +77,140 @@ def process_journal_pdfs(parser, listurl, errors):
 #            print "Will process " + url
             process_pdf(parser, url, errors)
 
+def newlinetocomma(str):
+    return re.sub('\r\n\s*', ', ', str)
+
+def fetch_postjournal_day(parser, url, html, saver):
+    root = lxml.html.fromstring(html)
+#    print html
+
+    count = None
+    for h2 in root.cssselect("h2"):
+        header = h2.text_content().strip()
+        matchObj = re.match( r'Søkeresultat \((\d+)\)$', header, re.M|re.I)
+        if matchObj:
+            count = int(matchObj.group(1))
+            break
+
+    datastore = []
+    for table in root.cssselect("table[summary='Offentlig journal dokumenter']"):
+#        print table.text_content()
+        cells = table.cssselect("th,td")
+        i = 0
+        entrydata= {}
+        while i < len(cells) - 1:
+            field = cells[i].text_content().strip(' \n\t\r')
+            value = cells[i+1].text_content().strip(' \n\t\r')
+            entrydata[field] = value
+            i = i + 1
+#        print entrydata
+
+        recorddate = dateutil.parser.parse(entrydata['Journaldato:'].strip(), dayfirst=True)
+        docdesc = entrydata['Beskrivelse:'].strip()
+        casedesc = entrydata['Sakstittel:']
+        doctype = entrydata['Dokument type:']
+
+        saksbehandler = entrydata['Saksbehandler:'].strip()
+        saksansvarlig = entrydata['Ansvarlig:'].strip()
+
+        arkivsaksref = entrydata['Journalpost:']
+        caseyear = 0
+        caseseqnr = 0
+        casedocseq = 0
+        caseid = 'unknown'
+        matchObj = re.match( r'(\d+)/(\d+)-(\d+)$', arkivsaksref, re.M|re.I)
+        if matchObj:
+            caseyear = matchObj.group(1)
+            caseseqnr = matchObj.group(2)
+            casedocseq = matchObj.group(3)
+            caseid = str(caseyear) + "/" + str(caseseqnr)
+        else:
+            print "error: invalid Arkivsaksnr: " + arkivsaksref
+            raise Exception("Unable to parse %s" % url)
+
+        exemption = None
+        if 'Gradering:' in entrydata:
+            exemption = entrydata['Gradering:']
+
+        data = {
+            'agency' : parser.agency,
+            'recorddate' : recorddate.date(),
+#            'docdate' : docdate.date(),
+            'docdesc' : docdesc,
+            'casedesc' : casedesc,
+
+            'caseyear' : int(caseyear),
+            'caseseqnr' : int(caseseqnr),
+            'casedocseq' : int(casedocseq),
+            'caseid' : caseid,
+            'doctype' : doctype,
+
+#            'journalseqnr' : int(journalseqnr),
+#            'journalyear' : int(journalyear),
+#            'journalid' : journalid,
+
+            'saksbehandler' : saksbehandler,
+            'saksansvarlig' : saksansvarlig.strip(),
+#            'saksansvarligenhet' : saksansvarligenhet.strip(),
+
+            'arkivsaksref' : arkivsaksref,
+#            'laapenr' : laapenr,
+
+            'scrapedurl' : url,
+            'scrapestamputc' : datetime.datetime.now()
+        }
+
+        if 'Fra:' in entrydata:
+            sender = newlinetocomma(entrydata['Fra:'])
+            if sender != '**** **** **** ****':
+                data['sender'] = sender
+        if 'Til:' in entrydata:
+            recipient = newlinetocomma(entrydata['Til:'])
+            if recipient != '**** **** **** ****':
+                data['recipient'] = recipient
+
+        if exemption is not None:
+            data['exemption'] = exemption
+
+        print data
+        parser.verify_entry(data)
+        datastore.append(data)
+
+# If paging were done here and not in find_day_urls
+#    if count != len(datastore):
+#        raise ValueError("Unable to find all entries on %s, found %d of %d" % (url, len(datastore), count))
+
+    saver(unique_keys=['arkivsaksref'], data=datastore)
+
+def find_day_urls(parser, year):
+    urls=[]
+    for month in range(12+1):
+        url="http://uit.no/samfunn/offjour/count?year=%d&month=%d" % (year, month)
+        jsonres = scrape(url)
+        res = json.loads(jsonres)
+#        print res
+        for daystr in res['month']:
+            count = int(res['month'][daystr])
+            if count > 0:
+                matchObj = re.match( r'day(\d+)$', daystr, re.M|re.I)
+                if matchObj:
+                    day = int(matchObj.group(1))
+#                    print year, month, day, res['month'][daystr]
+                    nordatestr = "%02d.%02d.%d" % (day, month, year)
+                    htmlpagesize=100
+                    for page in range(int(count / htmlpagesize)+1):
+                        url="http://uit.no/samfunn/offjour?elementsprpage=%d&pageindex=%d&uitgyldigfra=%s&uitgyldigtil=%s&searchtitle=&searchinnhold=" % (htmlpagesize, page, nordatestr, nordatestr)
+                        if ! parser.is_already_scraped(url):
+                            urls.append(url)
+                else:
+                    raise ValueError("Unable to parse day string '%s'" % daystr)
+    return urls
+
+def saver(unique_keys, data):
+    print "Not saving data"
+    return
+#    scraperwiki.sqlite.save(unique_keys, data)
+
 def test_small_pdfs(parser):
     # Test with some smaller PDFs
     errors = []
@@ -89,6 +223,13 @@ errors = []
 parser = postlistelib.PDFJournalParser(agency=agency)
 
 #test_small_pdfs(parser)
+
+urls = []
+urls.extend(find_day_urls(parser, 2014))
+urls.extend(find_day_urls(parser, 2015))
+for url in urls:
+    html = scrape(url)
+    fetch_postjournal_day(parser, url, html, saver=saver)
 
 process_journal_pdfs(parser, "http://uit.no/om/enhet/artikkel?p_document_id=382893&p_dimension_id=88216", errors)
 process_page_queue(parser, errors)
