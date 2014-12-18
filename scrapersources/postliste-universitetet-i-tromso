@@ -211,9 +211,9 @@ def find_day_urls(parser, year):
     return urls
 
 def saver(unique_keys, data):
-    print "Not saving data"
-    return
-#    scraperwiki.sqlite.save(unique_keys, data)
+#    print "Not saving data"
+#    return
+    scraperwiki.sqlite.save(unique_keys, data)
 
 def test_small_pdfs(parser):
     # Test with some smaller PDFs
