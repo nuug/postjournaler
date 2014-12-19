@@ -1,4 +1,12 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: unknown
+#  Status: finished
+#  Name: Norsk Polarinstitutt
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Run: daily
 
 import scraperwiki
 import json
@@ -53,7 +61,7 @@ def process_journal_pdfs(parser, listurl, errors):
     html = scraperwiki.scrape(listurl)
     root = lxml.html.fromstring(html)
     html = None
-    for ahref in root.cssselect("div.onecol ul a"):
+    for ahref in root.cssselect("div#rightside ul a"):
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
         if -1 != href.find("file://") or -1 == url.find(".pdf"):
@@ -69,6 +77,8 @@ def process_journal_pdfs(parser, listurl, errors):
 def test_small_pdfs(parser):
     # Test with some smaller PDFs
     errors = []
+    process_pdf(parser, "http://www.npolar.no/npcms/export/sites/np/files/vedlegg/offentlig-journal/2014-09.pdf", errors)
+    process_pdf(parser, "http://www.npolar.no/npcms/export/sites/np/files/vedlegg/offentlig-journal/2014-08.pdf", errors)
     #process_pdf(parser, "http://www.npolar.no/npcms/export/sites/np/files/vedlegg/offentlig-journal/2011-10.pdf", errors)
     #process_pdf(parser, "http://www.npolar.no/npcms/export/sites/np/files/vedlegg/offentlig-journal/2011-09.pdf", errors)
     #process_pdf(parser, "http://www.npolar.no/npcms/export/sites/np/files/vedlegg/offentlig-journal/2011-08.pdf", errors)
