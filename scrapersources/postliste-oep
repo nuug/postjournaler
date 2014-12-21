@@ -112,7 +112,7 @@ def cpu_spent():
     return getattr(usage, 'ru_utime') + getattr(usage, 'ru_stime')
 
 def cpu_available():
-    return resource.getrlimit(resource.RLIMIT_CPU)[0]/2 - 1
+    return resource.getrlimit(resource.RLIMIT_CPU)[0]
 
 def url_from_id(id):
     return "https://www.oep.no/search/resultSingle.html?journalPostId=" + str(id)
