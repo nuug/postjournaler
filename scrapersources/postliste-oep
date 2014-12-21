@@ -362,7 +362,7 @@ print "Starting to fetch journal entries " + str(datetime.datetime.now())
 scraperwiki.scrape("http://www.oep.no/")
 datastorage = []
 
-reparse_strange_entries(datastorage)
+#reparse_strange_entries(datastorage)
 
 # Update entries to handle <URL: https://rt.nuug.no:443/Ticket/Display.html?id=6342 >.
 # Used 2012-09-17
