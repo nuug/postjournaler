@@ -144,6 +144,7 @@ def insert_entry(dbcursor, entry):
 def populate_from_scraper_real(dbcursor, scraper, limit):
     lastscrapestamputc = ''
     sys.stdout.write(scraper + ": ")
+    sys.stdout.flush()
     if True:
         try:
             sql = "SELECT MAX(scrapestamputc) FROM %s WHERE scraper = '%s'" % (dbtable, scraper)
@@ -186,6 +187,7 @@ def populate_from_scraper_real(dbcursor, scraper, limit):
 	connection.close()
     
     sys.stdout.write("Adding/updating " + str(len(data)) + " " + status + " entries (" + lastscrapestamputc + ")")
+    sys.stdout.flush()
     skipped = 0
     for entry in data:
 
