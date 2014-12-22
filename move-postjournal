@@ -184,7 +184,7 @@ def populate_from_scraper_real(dbcursor, scraper, limit):
             data.append(dict(row.items()))
 	connection.close()
     
-    print "Adding/updating " + str(len(data)) + " " + status + " entries (" + lastscrapestamputc + ")"
+    print(scraper + ": Adding/updating " + str(len(data)) + " " + status + " entries (" + lastscrapestamputc + ")", end='')
     skipped = 0
     for entry in data:
 
@@ -210,7 +210,7 @@ def populate_from_scraper_real(dbcursor, scraper, limit):
         except:
             print entry
             raise
-    print "Added/updated " + str(len(data)-skipped) + " " + status + " entries"
+    print "done"
     return len(data) - skipped
 
 def populate_from_scraper(dbcursor, scraper, limit):
@@ -317,7 +317,7 @@ def main():
 
     for scraper in scrapers:
         print
-        print "Moving data from " + scraper
+#        print "Moving data from " + scraper
 	limit = 100000;
         while limit/2 < populate_from_scraper(dbcursor, scraper, limit):
             dbconn.commit()
