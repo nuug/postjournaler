@@ -167,11 +167,11 @@ print first, last
 
 # Parse forward in time
 if last is not None:
-    gen_date_urls(urllist, last, 1, 3)
+    gen_date_urls(urllist, last, 1, 14)
 
 # Parse back in time
 if first is not None:
-    gen_date_urls(urllist, first, -1, 10)
+    gen_date_urls(urllist, first, -1, 14)
 
 for dayurl in urllist:
     print 'Fetching ' + dayurl
