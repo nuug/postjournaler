@@ -171,7 +171,7 @@ if last is not None:
 
 # Parse back in time
 if first is not None:
-    gen_date_urls(urllist, first, -1, 14)
+    gen_date_urls(urllist, first, -1, 5)
 
 for dayurl in urllist:
     print 'Fetching ' + dayurl
