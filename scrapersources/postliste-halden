@@ -40,8 +40,8 @@ def process_pdf(parser, pdfurl, errors):
         pdfcontent = scraperwiki.scrape(pdfurl)
         parser.preprocess(pdfurl, pdfcontent)
         pdfcontent = None
-#    except ValueError, e:
-#        errors.append(e)
+    except ValueError, e:
+        errors.append(e)
     except IndexError, e:
         errors.append(e)
 
