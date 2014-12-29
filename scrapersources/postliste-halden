@@ -44,6 +44,8 @@ def process_pdf(parser, pdfurl, errors):
         errors.append(e)
     except IndexError, e:
         errors.append(e)
+    except urllib2.HTTPError, e:
+        errors.append(e)
 
 def process_page_queue(parser, errors):
     try:
