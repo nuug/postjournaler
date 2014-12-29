@@ -18,6 +18,7 @@ import resource
 import sys
 import urlparse
 import urllib
+import urllib2
 import re
 lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
@@ -45,7 +46,7 @@ def process_pdf(parser, pdfurl, errors):
     except IndexError, e:
         errors.append(e)
     except urllib2.HTTPError, e:
-        errors.append(e)
+        errors.append(str(e) + " " + pdfurl)
 
 def process_page_queue(parser, errors):
     try:
