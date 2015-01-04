@@ -34,7 +34,6 @@ def out_of_cpu(arg, spent, hard, soft):
     report_errors(arg)
 
 def process_pdf(parser, pdfurl, errors):
-    errors = []
     postlistelib.exit_if_no_cpu_left(0, out_of_cpu, errors)
     try:
         pdfcontent = scraperwiki.scrape(pdfurl)
