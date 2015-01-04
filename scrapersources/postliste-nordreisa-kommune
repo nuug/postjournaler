@@ -14,6 +14,7 @@ import json
 from BeautifulSoup import BeautifulSoup
 import datetime
 import dateutil.parser
+import urllib2
 import lxml.html
 import resource
 import sys
@@ -34,15 +35,16 @@ def out_of_cpu(arg, spent, hard, soft):
     report_errors(arg)
 
 def process_pdf(parser, pdfurl, errors):
-    errors = []
     postlistelib.exit_if_no_cpu_left(0, out_of_cpu, errors)
     try:
         pdfcontent = scraperwiki.scrape(pdfurl)
         parser.preprocess(pdfurl, pdfcontent)
         pdfcontent = None
-#    except ValueError, e:
-#        errors.append(e)
+    except ValueError, e:
+        errors.append(e)
     except IndexError, e:
+        errors.append(e)
+    except urllib2.HTTPError, e:
         errors.append(e)
 
 def process_page_queue(parser, errors):
@@ -60,7 +62,7 @@ def process_journal_pdfs(parser, listurl, errors):
     html = None
     for ahref in root.cssselect("a"):
     	if 'href' not in ahref.attrib:
-            print "Skipping a without href"
+#            print "Skipping a without href"
             continue
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
@@ -68,10 +70,10 @@ def process_journal_pdfs(parser, listurl, errors):
 #            print "Skipping non-http URL " + url
             continue
         if parser.is_already_scraped(url):
+#            print "Skipping already scraped " + url
             True
-            print "Skipping already scraped " + url
         else:
-            print "Will process " + url
+#            print "Will process " + url
             process_pdf(parser, url, errors)
 
 def test_small_pdfs(parser):
