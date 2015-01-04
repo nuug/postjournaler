@@ -59,6 +59,9 @@ def process_journal_pdfs(parser, listurl, errors):
     root = lxml.html.fromstring(html)
     html = None
     for ahref in root.cssselect("a"):
+    	if 'href' not in ahref.attrib:
+            print "Skipping a without href"
+            continue
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
         if -1 != href.find("file://") or -1 == url.find(".pdf"):
@@ -82,7 +85,7 @@ def test_small_pdfs(parser):
 errors = []
 parser = postlistelib.PDFJournalParser(agency=agency)
 
-test_small_pdfs(parser)
+#test_small_pdfs(parser)
 
 process_journal_pdfs(parser, "http://www.nordreisa.kommune.no/postlister-20122013-og-2014.4866638-137620.html", errors)
 process_page_queue(parser, errors)
