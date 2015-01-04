@@ -43,7 +43,7 @@ columns = {
 
 # print the connection string we will use to connect
 def db_connect():
-    print "Connecting to database\n	->%s" % (conn_string)
+#    print "Connecting to database\n	->%s" % (conn_string)
 
     try:
         # get a connection, if a connect cannot be made an exception
