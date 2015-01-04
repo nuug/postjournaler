@@ -403,8 +403,8 @@ if min >= 0 and read_backwards:
 rescan_min = scraperwiki.sqlite.get_var('min_rescan_id')
 if rescan_min is None:
     rescan_min = 0
-rescan_count = 5000
-if rescan_min < max:
+rescan_count = 8000
+if rescan_min + rescan_count < max - 100000:
     end = rescan_min + rescan_count
     fetched = fetch_range(datastorage, rescan_min, end, 1)
     save_var('min_rescan_id', end - 1)
