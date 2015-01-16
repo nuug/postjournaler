@@ -1,0 +1,155 @@
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: unfinished
+#  Name: Bergen kommune
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Run: daily
+#  Missingfields: journalseqnr journalyear journalid
+
+import scraperwiki
+import urllib
+import urllib2
+import urlparse
+import lxml.html
+import re
+import dateutil.parser
+import datetime
+from dateutil.relativedelta import relativedelta
+
+agency = "Bergen kommune"
+
+starturl  = "http://www3.bergen.kommune.no/offentligjournal/"
+
+searchurl = "http://www3.bergen.kommune.no/offentligjournal/utv_result.asp"
+
+scraperwiki.scrape(starturl)
+postlistelib=scraperwiki.swimport('postliste-python-lib')
+
+def saver(unique_keys, data):
+#    return
+    #print "Not saving data"
+    scraperwiki.sqlite.save(unique_keys, data)
+
+def fetch_postjournal_day(parser, url, html, saver):
+    root = lxml.html.fromstring(html)
+#    print html
+
+# caseid++
+# Dokumentdato:
+# Journal Dato:
+# Gradering:
+# Sakstittel:
+# Dokumenttittel:
+# Dokumenttype:
+# Til:
+# Fra:
+# Ansvarlig:
+# Saksbehandler:
+
+# table#tab table#tabletop tr
+#   td.list2btop
+#   td.JStd3
+#   td.JStd4
+
+# ['201500015\t\t\t-\t\t3', '', 'Dokumentdato:\r\n\t\t\t\t\t\t05.01.2015', 'Gradering:', 'Ugradert', u'\xa0', u'Journal Dato: \xa005.01.2015', 'Sakstittel:', u'Sv\xf8mmeanlegg - disponering 2015', '', '', 'Dokumenttittel:', u'S\xf8knad om bassengtid Vestlandsheimen v\xe5r 2015 - Nedre Nattland bofellesskap', 'Til:', 'Nedre Nattland bofellesskap', 'Nedre Nattland bofellesskap', 'Dokumenttype:', 'U', '', '', '', 'Ansvarlig:', 'BKNI-IDR/BIDRE/TEFR', 'Saksbehandler:', 'BKNI-IDR/BIDRE/MBRU']
+
+    entries = []
+    for table in root.cssselect("table#tab tr td table#Tabletop"):
+        entry = {}
+        tds = table.cssselect("td")
+        i = 0
+        while i < len(tds) - 1:
+            td = tds[i]
+            line = td.text_content().strip(' \n\t\r')
+#            print "L: \"" + line + "\""
+            if 0 == i:
+                matchObj = re.match(r'(\d{4})(\d+)\s+-\s+(\d+)$',
+                                    line, re.M|re.I)
+                if matchObj:
+                    entry['caseyear'] = int(matchObj.group(1))
+                    entry['caseseqnr'] = int(matchObj.group(2))
+                    entry['casedocseq'] = int(matchObj.group(3))
+                    entry['caseid'] = "%d/%d" % (entry['caseyear'],
+                                                 entry['caseseqnr'])
+                    entry['arkivsaksref'] = "%s-%d" % (entry['caseid'],
+                                                       entry['casedocseq'])
+                else:
+                    raise ValueError("Something is strange, missing case ID")
+
+            matchObj = \
+                re.match("^Dokumentdato:\s+(\d{2}).(\d{2}).(\d{4})$",
+                         line, re.M|re.I)
+            if matchObj:
+                entry['docdate'] = "%s-%s-%s" % (matchObj.group(3),
+                                                 matchObj.group(2),
+                                                 matchObj.group(1))
+            matchObj = \
+                re.match("^Journal Dato:\s+(\d{2}).(\d{2}).(\d{4})$",
+                         line, re.M|re.I)
+            if matchObj:
+                entry['recorddate'] = "%s-%s-%s" % (matchObj.group(3),
+                                                    matchObj.group(2),
+                                                    matchObj.group(1))
+            fields = [
+                ('Gradering:', 'exemption'),
+                ('Sakstittel:', 'casedesc'),
+                ('Dokumenttittel:', 'docdesc'),
+                ('Ansvarlig:', 'casehandler'),
+                ('Saksbehandler:', 'saksbehandler'),
+                ('Dokumenttype:', 'doctype'),
+                ('Til:', 'recipient'),
+                ('Fra:', 'sender'),
+                ]
+            for fieldinfo in fields:
+                field, name = fieldinfo
+                if line == field:
+                    entry[name] = \
+                        tds[i+1].text_content().strip(' \n\t\r')
+                    i += 1
+            i += 1
+
+        if 'Ugradert' == entry['exemption']:
+            del entry['exemption']
+
+        entry['agency']  = parser.agency
+        entry['scrapedurl']  = url
+        entry['scrapestamputc'] = datetime.datetime.now()
+
+        print entry
+        parser.verify_entry(entry)
+        entries.append(entry)
+    saver(unique_keys=['arkivsaksref'], data=entries)
+
+def fetch_date(parser, saver, date):
+    values = {
+        'Enhet'   : 'Alle',
+        'TilFra'  : '',
+        'Beskrivelse' : '',
+        'FraDato' : date,
+        'TilDato' : date,
+        }
+    data = urllib.urlencode(values)
+    print data
+    req = urllib2.Request(searchurl, data)
+    response = urllib2.urlopen(req)
+    html = response.read()
+#    print html
+    fetch_postjournal_day(parser, searchurl, html, saver)
+
+print "Fetching public journal!"
+
+parser = postlistelib.JournalParser(agency=agency)
+
+parsedays = 46
+
+today = datetime.date.today()
+i  = 1
+while i <= parsedays:
+    i = i + 1
+    dayparse = today - relativedelta(days=(parsedays - i))
+    daystr = dayparse.strftime("%02d.%02m.%04Y")
+    print daystr
+    fetch_date(parser, saver, daystr)
