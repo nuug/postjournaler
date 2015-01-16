@@ -6,3 +6,12 @@ https://github.com/rossjones/ScraperWikiX/blob/master/services/scriptmgr/scripts
 
 Standalone lib https://github.com/scraperwiki/scraperwiki-python
 
+== Running / testing scrapers ==
+In addition to checking out the repo, the following is required to test or
+run most scrapers:
+
+mkdir data
+scp -r 'scraper.nuug.no:/srv/scraper/postjournaler/testlib/*' .
+apt-get install python-alembic python-beautifulsoup python-dateutil
+cp scrapersources/postliste-python-lib scrapersources/postliste-python-lib.py
+
