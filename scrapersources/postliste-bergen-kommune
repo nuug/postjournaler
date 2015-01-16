@@ -118,7 +118,7 @@ def fetch_postjournal_day(parser, url, html, saver):
         entry['scrapedurl']  = url
         entry['scrapestamputc'] = datetime.datetime.now()
 
-        print entry
+#        print entry
         parser.verify_entry(entry)
         entries.append(entry)
     saver(unique_keys=['arkivsaksref'], data=entries)
@@ -132,7 +132,7 @@ def fetch_date(parser, saver, date):
         'TilDato' : date,
         }
     data = urllib.urlencode(values)
-    print data
+#    print data
     req = urllib2.Request(searchurl, data)
     response = urllib2.urlopen(req)
     html = response.read()
@@ -151,5 +151,5 @@ while i <= parsedays:
     i = i + 1
     dayparse = today - relativedelta(days=(parsedays - i))
     daystr = dayparse.strftime("%02d.%02m.%04Y")
-    print daystr
+#    print daystr
     fetch_date(parser, saver, daystr)
