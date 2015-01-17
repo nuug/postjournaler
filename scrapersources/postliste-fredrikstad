@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: unfinished
+#  Name: Fredrikstad kommune
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Run: not finished
+
 import scraperwiki
 
 import json

@@ -1,4 +1,12 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: ?
+#  Status: finished
+#  Name: Direktoratet for forvaltning og IKT
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Run: obsolete, moved to OEP
 
 import scraperwiki
 import json

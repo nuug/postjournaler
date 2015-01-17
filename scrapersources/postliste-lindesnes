@@ -1,4 +1,13 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: unfinished
+#  Name: Lindesnes kommune
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Run: not finished
+
 import scraperwiki
 import lxml.html
 import datetime
