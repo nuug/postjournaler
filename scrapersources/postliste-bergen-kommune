@@ -80,14 +80,14 @@ def fetch_postjournal_day(parser, url, html, saver):
                     raise ValueError("Something is strange, missing case ID")
 
             matchObj = \
-                re.match("^Dokumentdato:\s+(\d{2}).(\d{2}).(\d{4})$",
+                re.match("^Dokumentdato:[^\d]+(\d{2}).(\d{2}).(\d{4})$",
                          line, re.M|re.I)
             if matchObj:
                 entry['docdate'] = "%s-%s-%s" % (matchObj.group(3),
                                                  matchObj.group(2),
                                                  matchObj.group(1))
             matchObj = \
-                re.match("^Journal Dato:\s+(\d{2}).(\d{2}).(\d{4})$",
+                re.match("^Journal Dato:[^\d]+(\d{2}).(\d{2}).(\d{4})$",
                          line, re.M|re.I)
             if matchObj:
                 entry['recorddate'] = "%s-%s-%s" % (matchObj.group(3),
@@ -143,7 +143,7 @@ print "Fetching public journal!"
 
 parser = postlistelib.JournalParser(agency=agency)
 
-parsedays = 46
+parsedays = 48
 
 today = datetime.date.today()
 i  = 1
