@@ -58,7 +58,9 @@ class PDFJournalParser(jp.JournalParser):
         # Find all text-blobs and number them
         for t in s.findAll('text'):
             if t.text != " ":
-                text.append(t.text)
+                #print(t['top'])
+                #print(t.text)
+                text.append(t)
                 #self.dprint(str(linecount) + ": " + t.text)
                 #self.dprint(str(linecount) + ": " + ":".join("{:02x}".format(ord(c)) for c in t.text))
             linecount = linecount + 1
@@ -72,7 +74,7 @@ class PDFJournalParser(jp.JournalParser):
         entrycount = 0
         i = 0
         while i < len(text):
-            if 'Avskrevet:' == text[i]:
+            if 'Avskrevet:' == text[i].text:
                 entrycount = entrycount + 1
             i = i + 1
         self.dprint("We found %s entries on page %s ('Avskrevet:')" % (entrycount, pagenum))
@@ -87,26 +89,43 @@ class PDFJournalParser(jp.JournalParser):
         found_entries = 0
         entry_start = -1
         entry_stop = -1
+        prev_entry_end = -1
+        tops = []
+        FIELD_ORDER= {'Arkivdel:': 10, 'Arkivkode:': 7, 'Sak:': 2, 'Dok.:': 3, 'Tilg. kode:': 5, 'Dok. dato:': 9,
+                       'Avskrevet:': 6, 'Avsender:': 1, 'Mottaker:': 1, 'Journaldato:': 4, 'Saksbehandler:': 8}
         while i < len(text):
-            if 'Avsender:' == text[i] or 'Mottaker:' == text[i]:
-                entry_start = i - 1
-                if (entry_start < 0):
-                    entry_start = 0
-                #self.dprint("ESTART")
-            
-            if 'Arkivdel:' == text[i]:
-                #self.dprint("EEND")
-                if(entry_start == -1):
-                    self.dprint("[ERROR] Found end of entry (line %s) before start of entry on page %s" % (i, pagenum))
-                    raise ValueError("[ERROR] Found end of entry before start of entry on page %s" % (pagenum))
-                entry_end = i + 2
-                if (entry_end > len(text)):
-                    entry_end = len(text)
+            if 'Avsender:' == text[i].text or 'Mottaker:' == text[i].text:
                 found_entries = found_entries + 1
-                entry = self.pdfparser(text[entry_start:entry_end], pdfurl, pagenum, found_entries)
-                entry_start = -1
-                entry_stop = -1
+
+
+
+
             i = i + 1
+        # while i < len(text):
+        #     if 'Avsender:' == text[i].text or 'Mottaker:' == text[i].text:
+        #         entry_start = i - 1
+        #         if (entry_start < 0):
+        #             entry_start = 0
+        #         #self.dprint("ESTART")
+        #
+        #     if 'Arkivdel:' == text[i].text:
+        #         #self.dprint("EEND")
+        #         if(entry_start == -1):
+        #             self.dprint("[ERROR] Found end of entry (line %s) before start of entry on page %s" % (i, pagenum))
+        #             raise ValueError("[ERROR] Found end of entry before start of entry on page %s" % (pagenum))
+        #         entry_end = i + 2
+        #         if (entry_end > len(text)):
+        #             entry_end = len(text)
+        #         found_entries = found_entries + 1
+        #         self.verify_entry(text[entry_start:entry_end], pagenum, found_entries)
+        #         #entry = self.parse_entry(text[entry_start:entry_end], pdfurl, pagenum, found_entries)
+        #         #print(entry)
+        #         if(found_entries == 2):
+        #             exit(0)
+        #         entry_start = -1
+        #         prev_entry_end = entry_stop
+        #         entry_stop = -1
+        #     i = i + 1
         if (found_entries != entrycount):
             self.dprint("[ERROR] We expected %s but found %s entries on page %s" % (found_entries, entrycount, pagenum))
             raise ValueError("[ERROR] We expected %s but found %s entries on page %s" % (found_entries, entrycount, pagenum))
@@ -114,24 +133,40 @@ class PDFJournalParser(jp.JournalParser):
         s = None
         raise ValueError("parse_page not implemented")
 
-    def pdfparser(self, entrytext, pdfurl, pagenum, num_entry):
+    def verify_entry(self, entrytext, pagenum, num_entry):
+        pass
+
+    def verify_entry2(self, entrytext, pagenum, num_entry):
         FIELDS_IN_ENTRY = 10
-        field_order = {'Arkivdel:': 10, 'Arkivkode:': 7, 'Sak:': 2, 'Dok.:': 3, 'Tilg. kode:': 5, 'Dok. dato:': 9, 'Avskrevet:': 6, 'Avsender:': 1, 'Mottaker:': 1, 'Journaldato:': 4, 'Saksbehandler:': 8}
-        fields = {'Avsender:', 'Mottaker:', 'Sak:', 'Dok.:', 'Journaldato:', 'Tilg. kode:', 'Avskrevet:', 'Arkivkode:', 'Saksbehandler:', 'Dok. dato:', 'Arkivdel:' }
+
+        FIELD_ORDER= {'Arkivdel:': 10, 'Arkivkode:': 7, 'Sak:': 2, 'Dok.:': 3, 'Tilg. kode:': 5, 'Dok. dato:': 9,
+                       'Avskrevet:': 6, 'Avsender:': 1, 'Mottaker:': 1, 'Journaldato:': 4, 'Saksbehandler:': 8}
+        fields_checked = 0
         num_fields_found = 0
         for text in entrytext:
-            if text in field_order:
+            fields_checked = fields_checked + 1
+            if text.text in FIELD_ORDER:
                 num_fields_found = num_fields_found + 1
-                if (field_order[text] != num_fields_found): # Sanity check
-                    self.dprint("[ERROR] Field '%s' is normally field #%s, but was #%s on page %s, entry %s" % (text, field_order[text], num_fields_found, pagenum, num_entry))
-                    raise ValueError("[ERROR] Field '%s' is normally field #%s, but was #%s on page %s, entry %s" % (text, field_order[text], num_fields_found, pagenum, num_entry))
+                if (FIELD_ORDER[text.text] != num_fields_found): # Sanity check
+                    error = "[ERROR] Field '%s' is normally field #%s, but was #%s on page %s, entry %s" % \
+                                (text, FIELD_ORDER[text], num_fields_found, pagenum, num_entry)
+                    self.dprint(error)
+                    raise ValueError(error)
+                print("%s: %s" % (fields_checked, text.text))
+            else:
+                print("%s: %s" % (fields_checked, text.text))
+                # 1 = Mottager, 3 = Sak,  6 = Dok., 7 = Tilg. kode, 9 = Journaldato/Dok. dato
+                # 13  = Journaldato/Dok. dato, 15 = Arkivdel, 18 = Saksbehandler
+
         self.dprint("All fields appeared in the expected order")
+
         if (num_fields_found != FIELDS_IN_ENTRY): # Sanity check
-            self.dprint("[ERROR] Found %s fields, expected %s on page %s, field %s!" % (num_fields_found, FIELDS_IN_ENTRY, pagenum, num_entry))
-            raise ValueError("[ERROR] Found %s fields, expected %s on page %s, field %s!" % (num_fields_found, FIELDS_IN_ENTRY, pagenum, num_entry))
+            error = "[ERROR] Found %s fields, expected %s on page %s, field %s!" % \
+                    (num_fields_found, FIELDS_IN_ENTRY, pagenum, num_entry)
+            self.dprint(error)
+            raise ValueError(error)
         else:
             self.dprint("Found %s/10 fields in entry %s on page %s" % (num_fields_found, num_entry, pagenum))
-        #print field_order
 
     def process_pages(self):
         brokenpages = 0
@@ -194,7 +229,7 @@ class PDFJournalParser(jp.JournalParser):
             options = ''
         xml=scraperwiki.pdftoxml(pdfcontent, options)
         #self.dprint("The XMLK:")
-        #self.dprint(xml)
+        self.dprint(xml)
         pages=re.findall('(<page .+?</page>)',xml,flags=re.DOTALL)
         xml=None
 
