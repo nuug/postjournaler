@@ -243,7 +243,7 @@ def addyear(monthurls, year):
 #addyear(monthurls, 2011)
 #addyear(monthurls, 2012)
 
-parsemonths = 36
+parsemonths = 5
 
 today = datetime.date.today()
 i  = 1
@@ -283,3 +283,13 @@ for dayurl in urllist:
 #    print html
     fetch_postjournal_day(parser=parser, url=dayurl, html=html, saver=saver)
 
+# Workaround for missing day links discovered 2015-01-15
+def hardparse():
+    for m in ['09', '10', '11', '12']:
+        for d in range(1,32):
+            dayurl = "http://www.ballangen.kommune.no/artikler/postlister?month=%s2014&day=%d" % (m, d)
+            try:
+                html = postlistelib.fetch_url_harder(dayurl)
+                fetch_postjournal_day(parser=parser, url=dayurl, html=html, saver=saver)
+            except ValueError:
+                pass
