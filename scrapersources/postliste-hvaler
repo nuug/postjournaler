@@ -1,4 +1,12 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: finished
+#  Name: Hvaler kommune
+#  Format: PDF
+#  Datatype: ePhorte
+#  Vendor: Ergo
+#  Run: daily
 
 import scraperwiki
 import json
@@ -81,7 +89,9 @@ parser = postlistelib.PDFJournalParser(agency=agency)
 #test_small_pdfs(parser)
 
 process_page_queue(parser, errors)
+
+process_journal_pdfs(parser, "http://www.hvaler.kommune.no/Postlister/Postlister-2014/", errors)
+process_journal_pdfs(parser, "http://www.hvaler.kommune.no/Postlister/Postlister-2013/", errors)
 process_journal_pdfs(parser, "http://www.hvaler.kommune.no/Postlister/", errors)
 process_page_queue(parser, errors)
 report_errors(errors)
-
