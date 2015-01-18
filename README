@@ -7,6 +7,7 @@ https://github.com/rossjones/ScraperWikiX/blob/master/services/scriptmgr/scripts
 Standalone lib https://github.com/scraperwiki/scraperwiki-python
 
 == Running / testing scrapers ==
+
 In addition to checking out the repo, the following is required to test or
 run most scrapers:
 
@@ -15,3 +16,34 @@ scp -r 'scraper.nuug.no:/srv/scraper/postjournaler/testlib/*' .
 apt-get install python-alembic python-beautifulsoup python-dateutil
 cp scrapersources/postliste-python-lib scrapersources/postliste-python-lib.py
 
+== Common field names ==
+
+List of field names used in most scrapers.  All dates uses ISO format,
+YYYY-MM-DD, "YYYY-MM-DD HH:MM" or "YYYY-MM-DD HH:MM+TZ".
+
+ * agency, name of public administration
+ * recorddate
+ * docdate, date on document
+ * docdesc, title/description of document entry
+ * doctype, type of documen entry
+ * caseyear
+ * caseseqnr
+ * casedocseq
+ * caseid
+ * casedesc
+ * recipient
+ * sender
+ * exemption
+ * journalyear
+ * journalseqnr
+ * journalid
+ * scraper, name of script used to collect data
+ * scrapedurl, URL used to collect data
+ * scrapestamputc, when the information was fetched from the URL
+
+These are doctype values, based on NOARK types.
+
+ * U - Outgoing document
+ * I - Incoming document
+ * X - Internal document
+ * N - Internal document
