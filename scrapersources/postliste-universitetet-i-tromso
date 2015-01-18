@@ -7,6 +7,7 @@
 #  Datatype: ePhorte
 #  Vendor: Ergo
 #  Run: daily
+#  Missingfields: docdate journalseqnr journalyear journalid
 #
 # The PDF/ePhorte scraper is done, but the new HTML format is not yet
 # handled.  The HTML version is missing docdate, journalseqnr,
