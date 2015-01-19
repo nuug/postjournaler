@@ -263,6 +263,7 @@ def main():
 
     scrapers = [
         'postliste-oep',
+        'postliste-midsund-kommune',
         'postliste-hvaler',
         'postliste-bergen-kommune',
         'postliste-universitetet-i-tromso',
