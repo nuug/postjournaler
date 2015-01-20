@@ -143,13 +143,30 @@ print "Fetching public journal!"
 
 parser = postlistelib.JournalParser(agency=agency)
 
-parsedays = 48
+def gen_date_list(list, startdate, count, step):
+    d = dateutil.parser.parse(startdate, dayfirst=False)
+    for n in xrange(1, step*(count+1), step):
+        next = (d + relativedelta(days=n)).strftime("%02d.%02m.%04Y")
+        list.append(next)
 
 today = datetime.date.today()
-i  = 1
-while i <= parsedays:
-    i = i + 1
-    dayparse = today - relativedelta(days=(parsedays - i))
-    daystr = dayparse.strftime("%02d.%02m.%04Y")
+try:
+    first = scraperwiki.sqlite.select("min(recorddate) as min from swdata")[0]['min']
+    last = scraperwiki.sqlite.select("max(recorddate) as max from swdata")[0]['max']
+except:
+    last = (today + relativedelta(days=-14)).strftime("%Y-%m-%d")
+    first = None
+
+dates = []
+
+# Parse some days back in time
+if first is not None:
+    gen_date_list(dates, first, 14, -1)
+
+# Parse some days forward in time
+if last is not None:
+    gen_date_list(dates, last, 7, 1)
+
+for daystr in dates:
 #    print daystr
     fetch_date(parser, saver, daystr)
