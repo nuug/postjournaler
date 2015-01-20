@@ -124,6 +124,7 @@ def fetch_postjournal_day(parser, url, html, saver):
     saver(unique_keys=['arkivsaksref'], data=entries)
 
 def fetch_date(parser, saver, date):
+    print "Fetching entries for %s" % date
     values = {
         'Enhet'   : 'Alle',
         'TilFra'  : '',
