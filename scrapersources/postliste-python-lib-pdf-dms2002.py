@@ -93,25 +93,29 @@ class PDFJournalParser(jp.JournalParser):
             if 'Avsender:' == text[i].text or 'Mottaker:' == text[i].text:
                 found_entries = found_entries + 1
                 entries[found_entries] = {}
-                entries[found_entries]['avsender/mottager.top'] = text[i]['top']
+                entries[found_entries]['avsender/mottager.top'] = int(text[i]['top'])
             elif 'Sak:' == text[i].text:
-                entries[found_entries]['sak.top'] = text[i]['top']
+                entries[found_entries]['sak.top'] = int(text[i]['top'])
             elif 'Dok.:' == text[i].text:
-                entries[found_entries]['dok.top'] = text[i]['top']
+                entries[found_entries]['dok.top'] = int(text[i]['top'])
             elif 'Avskrevet:' == text[i].text:
-                entries[found_entries]['avskrevet.top'] = text[i]['top']
+                entries[found_entries]['avskrevet.top'] = int(text[i]['top'])
+                entries[found_entries]['avskrevet.height'] = int(text[i]['height'])
             elif 'Arkivkode:' == text[i].text:
-                entries[found_entries]['arkivkode.top'] = text[i]['top']
-                entries[found_entries]['arkivkode.height'] = text[i]['height']
+                entries[found_entries]['arkivkode.top'] = int(text[i]['top'])
+                entries[found_entries]['arkivkode.height'] = int(text[i]['height'])
+            elif 'Saksbehandler:' == text[i].text:
+                entries[found_entries]['saksbehandler.height'] = int(text[i]['height'])
             elif 'Dok. dato:' == text[i].text:
-                entries[found_entries]['dokdato.top'] = text[i]['top']
-                entries[found_entries]['dokdato.height'] = text[i]['height']
+                entries[found_entries]['dokdato.top'] = int(text[i]['top'])
+                entries[found_entries]['dokdato.height'] = int(text[i]['height'])
                 if not ('avsender/mottager.top' in entries[found_entries] and
                     'sak.top' in entries[found_entries] and
                     'dok.top' in entries[found_entries] and
                     'avskrevet.top' in entries[found_entries] and
                     'arkivkode.top' in entries[found_entries] and
                     'arkivkode.height' in entries[found_entries] and
+                    'saksbehandler.height' in entries[found_entries] and
                     'dokdato.top' in entries[found_entries] and
                     'dokdato.height' in entries[found_entries]):
                     error = "[ERROR] Missing one or more element positions in entry %s on page %s" % (found_entries, pagenum)
@@ -151,27 +155,69 @@ class PDFJournalParser(jp.JournalParser):
         while i < len(text) and not at_end:
             #self.dprint("%s: %s" %(i, text[i].text))
 
-            if (state == POST_ARKIVDEL):
-                if len(entries) < found_entries+1:
-                    at_end = True
-                    self.dprint("We are at end of page %s" % (pagenum))
+            if (state >= POST_ARKIVDEL):
+                text_top = int(text[i]['top'])
+                this_dok_top = entries[found_entries]['dok.top']
+                next_dok_top = text_top + 1
+                try:
+                    next_dok_top = entries[found_entries+1]['dok.top']
+                except KeyError, k:
+                    next_dok_top = text_top+1
+                past_bottom = (text_top < this_dok_top)
+                next_entry = (text_top >= next_dok_top)
+                below_top_of_avskrevet = (text_top > (entries[found_entries]['avskrevet.top'] - entries[found_entries]['avskrevet.height']))
+                #self.dprint("avskrevet.t: %s h: %s" % (entries[found_entries]['avskrevet.top'], entries[found_entries]['avskrevet.height']))
+                above_arkivkode = (text_top < entries[found_entries]['arkivkode.top'] - entries[found_entries]['saksbehandler.height'])
+                #self.dprint("avskrevet.t: %s saksbeh.h: %s" % (entries[found_entries]['avskrevet.top'], entries[found_entries]['saksbehandler.height']))
+                if past_bottom:
+                    # We have found the bottom of the document, e.g. the top! (my head hurts)
+                    at_end = True;
                     continue
 
-                next_dok_top = entries[found_entries+1]['dok.top']
-                if text[i]['top'] >= next_dok_top:
-                    #self.dprint(entry)
+                if next_entry:
                     #self.dprint("Found item with top lower than next top, assume new entry")
-                    state = POST_SAKSBEHANDLER_TEXT
+                    state = POST_SAKSBEHANDLER_TEXT;
 
-                if state == POST_ARKIVKODE_TEXT:
-                    pass
-                if state == POST_AVSKREVET_TEXT:
-                    pass
                 if state == POST_SAKSBEHANDLER_TEXT:
+                    #self.dprint("Storing entry!")
                     page.append(entry)
+                    #print(entry)
                     entry = {}
 
+
+                if state == POST_ARKIVDEL:
+                    #self.dprint("This should be an arkivkode")
+                    #self.dprint("arkivkode:" + text[i]['top'] + " - " + text[i].text + " - %s:%s:%s" % (below_top_of_avskrevet, above_arkivkode, past_bottom))
+                    if below_top_of_avskrevet or above_arkivkode or past_bottom:
+                        #self.dprint("Skipping at arkivkode because top:" + text[i]['top'] + " - " + text[i].text + " - %s:%s:%s" % (below_top_of_avskrevet, above_arkivkode, past_bottom))
+                        #self.dprint("We are past ARKIVKODE")
+                        state = POST_ARKIVKODE_TEXT # next is avskrevet
+                    else:
+                        #self.dprint("Fond arkivkode (%s)" % (text[i].text))
+                        add_entry(entry, "arkivkode", text[i].text)
+
+                if state == POST_ARKIVKODE_TEXT:
+                    if above_arkivkode or past_bottom:
+                        #self.dprint("Skipping at avskrevet because top:" + text[i]['top'] + " - " + text[i].text)
+                        #self.dprint("We are past AVSKREVET")
+                        state = POST_AVSKREVET_TEXT
+                    else:
+                        #self.dprint("Found avskrevet")
+                        add_entry(entry, "avskrevet", text[i].text)
+
+                if state == POST_AVSKREVET_TEXT:
+                    if past_bottom:
+                        #self.dprint("Skipping at past_bottom because top:" + text[i]['top'] + " - " + text[i].text + " - %s " % (past_bottom))
+                        #self.dprint("We are past SAKSBEHANDLER")
+                        state = POST_SAKSBEHANDLER_TEXT
+                    else:
+                        #self.dprint("Found saksbehandler (%s)" % (text[i].text))
+                        add_entry(entry, "saksbehandler", text[i].text)
+
+
+
             if 'Arkivdel:' == text[i].text:
+                #self.dprint("We are past tag Arkivdel")
                 state = POST_ARKIVDEL;
 
             if 'Dok. dato:' == text[i].text:
@@ -206,16 +252,17 @@ class PDFJournalParser(jp.JournalParser):
                 add_entry(entry, "doc-2?", m.group(3))
                 add_entry(entry, "doc-3?", m.group(4))
                 entry["dok"] = m.group(5)
+                self.dprint("Found and parsed Dok")
                 state = POST_JOURNALDATO;
 
             if(state == POST_DOK):
                 # her er 'Dok.:'
                 # og deretter 'Tilg. kode:'
                 sak_top = entries[found_entries]['sak.top']
-                if text[i]['top'] < sak_top:
+                if int(text[i]['top']) < int(sak_top):
                     # Dok ser ut til å inneholde tre datapunkter, deles opp etter at vi finner Journaldato ^
                     add_entry(entry, "dok", text[i].text)
-                    #self.dprint("Fant dok-tekst")
+                    #self.dprint("Fant dok-tekst (%s < %s)" % (text[i]['top'], sak_top))
                 else:
                     add_entry(entry, "tilgkode", text[i].text)
                     #self.dprint("Fant tilgkode-tekst")
@@ -255,26 +302,38 @@ class PDFJournalParser(jp.JournalParser):
             self.dprint("[ERROR] We expected %s but found %s entries on page %s" % (found_entries, entrycount, pagenum))
             raise ValueError("[ERROR] We expected %s but found %s entries on page %s" % (found_entries, entrycount, pagenum))
         self.dprint("We found %s of %s expected entries on page %s" %(found_entries, entrycount, pagenum))
+        if (len(entry) > 1):
+            page.append(entry) # add last entry
+            entry = {}
         for ent in page:
             self.print_entry(ent);
         s = None
         #raise ValueError("parse_page not implemented")
 
+
     def print_entry(self, entry):
         #print(entry)
         print("")
-        print("Dok.:\t\t" + entry['doctype?'] + ", " + entry['doc-1?'] + "/" + entry['doc-2?'] + "-"
-              + entry['doc-3?'] + " " + entry['dok'])
-        print("Sak:\t\t" + entry['sak'])
+        print(u"Dok.:\t\t%s[1], %s[2]/%s[3]-%s[4] %s[5]" % (entry['doctype?'], entry['doc-1?'], entry['doc-2?'], entry['doc-3?'], entry['dok']))
+        print(u"Sak:\t\t%s[6]" % (entry['sak']))
         if "avsender" in entry:
-            print("Avsender:\t%s" % (entry['avsender']))
+            print(u"Avsender:\t%s[7]" % (entry['avsender']))
         else:
-            print("Mottaker:\t%s" % (entry['mottaker']))
-
-        print("Journaldato:\t%s\tTilg. kode:\t%s\tSaksbehandler:\t%s" % (entry['journaldato'].strftime('%d.%m.%Y'), entry['tilgkode'], "#saksbehandler"))
-        print("Dok. dato:\t%s\tArkivdel:\t%s\tArkivkode:\t%s" % (entry['dokdato'].strftime('%d.%m.%Y'), entry['arkivdel'], "#arkivkode"))
-        print("Avskrevet:\t%s" % ("# avskrevet"))
+            print(u"Mottaker:\t%s[7]" % (entry['mottaker']))
+        saksbehandler = ""
+        if 'saksbehandler' in entry:
+            saksbehandler = entry['saksbehandler']
+        print(u"Journaldato:\t%s[8]\tTilg. kode:\t%s[9]\tSaksbehandler:\t%s[10]" % (entry['journaldato'].strftime('%d.%m.%Y'), entry['tilgkode'], entry['saksbehandler']))
+        arkivkode = ""
+        if 'arkivkode' in entry:
+            arkivkode = entry['arkivkode']
+        print(u"Dok. dato:\t%s[11]\tArkivdel:\t%s[12]\tArkivkode:\t%s[13]" % (entry['dokdato'].strftime('%d.%m.%Y'), entry['arkivdel'], arkivkode))
+        avskrevet = ""
+        if 'avskrevet' in entry:
+            avskrevet = entry['avskrevet']
+        print(u"Avskrevet:\t%s[14]" % (avskrevet))
         print("-------------------------------------------------------------------------------------")
+        print("")
 
     def verify_entry2(self, entrytext, pagenum, num_entry):
         FIELDS_IN_ENTRY = 10
