@@ -16,6 +16,11 @@ scp -r 'scraper.nuug.no:/srv/scraper/postjournaler/testlib/*' .
 apt-get install python-alembic python-beautifulsoup python-dateutil
 cp scrapersources/postliste-python-lib scrapersources/postliste-python-lib.py
 
+To run a scraper, use the run-scraper command and give the scraper
+name as the argument.  For example like this:
+
+  ./run-scraper postliste-oep
+
 == Common field names ==
 
 List of field names used in most scrapers.  All dates uses ISO format,
