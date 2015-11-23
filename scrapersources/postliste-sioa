@@ -1,0 +1,30 @@
+# -*- coding: utf-8 -*-
+
+#import scraperwiki
+import json
+from BeautifulSoup import BeautifulSoup
+import datetime
+import dateutil.parser
+import lxml.html
+import urlparse
+import re
+import urllib2
+frontpage = 'https://sio.no/snarveier/om-sio/rapporter-og-referater'
+#scraperwiki.scrape(frontpage)
+
+#postlistelib=scraperwiki.swimport('postliste-python-lib')
+
+agency = 'Samskipnaden i Oslo og Akershus'
+
+baseurl = 'https://sio.no'
+response = urllib2.urlopen(frontpage)
+html = response.read()
+root = lxml.html.fromstring(html)
+urls = root.cssselect("a.readmore")
+urllist = []
+for ahref in urls:
+    linktext = ahref.text_content()
+    if -1 != linktext.find('Postliste SiO'):
+        href = ahref.attrib['href']
+        print href
+        urllist.append(baseurl + href)
