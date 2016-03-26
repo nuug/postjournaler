@@ -175,7 +175,7 @@ def fetch_oep_entry(id, datastorage):
 #    print "Fetching %s" % oepurl
     try:
         html = scraperwiki.scrape(oepurl)
-    except urllib2.HTTPError, e
+    except urllib2.HTTPError, e:
 	return -1	
     root = lxml.html.fromstring(html.decode('utf-8'))
     data = { 'journalPostId' : id }
