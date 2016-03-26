@@ -173,7 +173,10 @@ doctypemap = {
 def fetch_oep_entry(id, datastorage):
     oepurl = url_from_id(id)
 #    print "Fetching %s" % oepurl
-    html = scraperwiki.scrape(oepurl)
+    try:
+        html = scraperwiki.scrape(oepurl)
+    except urllib2.HTTPError, e
+	return -1	
     root = lxml.html.fromstring(html.decode('utf-8'))
     data = { 'journalPostId' : id }
     for tr in root.cssselect("table.defaultTable tr"):
@@ -371,6 +374,10 @@ datastorage = []
 #scraperwiki.sqlite.execute("DELETE from swdata where journalPostId = 638104")
 #fetch_oep_entry(638104, datastorage)
 #scraperwiki.sqlite.commit()
+# Missing entry, should -1
+#print fetch_oep_entry(16629772, datastorage)
+# Exist, should return 0
+#print fetch_oep_entry(16629773, datastorage)
 
 count = 10000
 skiplimit = 500
