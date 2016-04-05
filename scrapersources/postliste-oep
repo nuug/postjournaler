@@ -112,7 +112,12 @@ def cpu_spent():
     return getattr(usage, 'ru_utime') + getattr(usage, 'ru_stime')
 
 def cpu_available():
-    return resource.getrlimit(resource.RLIMIT_CPU)[0]
+    available = resource.getrlimit(resource.RLIMIT_CPU)[0]
+    # If no limit is set, assume 10 CPU seconds as the limit to avoid
+    # running for more than a few minutes every time.
+    if 0 > available:
+        available = 10
+    return available
 
 def url_from_id(id):
     return "https://www.oep.no/search/resultSingle.html?journalPostId=" + str(id)
