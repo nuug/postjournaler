@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Set up the local scraperwiki python library
+if [ ! -d testlib ] ; then
+    mkdir testlib
+    git clone https://github.com/petterreinholdtsen/scraperwiki-python.git \
+	testlib/scraperwiki-python
+    (cd testlib/scraperwiki-python; git checkout -b localbranch)
+    (cd testlib/scraperwiki-python; git merge -m "Merge patches." origin/scraperwiki.swimport \
+	origin/sqliteerror origin/verbose-sqlite)
+fi
+
+# Install the rest
+sudo apt-get install python-alembic python-beautifulsoup python-dateutil
+if [ ! -h scrapersources/postliste-python-lib.py ] ; then
+    ln -s postliste-python-lib scrapersources/postliste-python-lib.py
+fi
+mkdir -p data

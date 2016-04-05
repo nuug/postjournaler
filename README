@@ -1,3 +1,6 @@
+Scrapers for norweigan post journal sources
+===========================================
+
 Classic API code available from
 
 https://bitbucket.org/ScraperWiki/scraperwiki-classic/src/c7f076950476?at=default
@@ -8,13 +11,12 @@ Standalone lib https://github.com/scraperwiki/scraperwiki-python
 
 == Running / testing scrapers ==
 
-In addition to checking out the repo, the following is required to test or
-run most scrapers:
+To get the scrapers running, one need to set up the data directory and
+a patched copy of the scraperwiki-python project.  The script
+env-setup is provided to do so.  Run it from the top of the checked
+out scraper directory to set up your own copy.
 
-mkdir data
-scp -r 'scraper.nuug.no:/srv/scraper/postjournaler/testlib/*' .
-apt-get install python-alembic python-beautifulsoup python-dateutil
-cp scrapersources/postliste-python-lib scrapersources/postliste-python-lib.py
+  ./env-setup
 
 To run a scraper, use the run-scraper command and give the scraper
 name as the argument.  For example like this:
