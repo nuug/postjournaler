@@ -339,7 +339,8 @@ def remove_original():
 # script was slightly broken and filled in non-existing entries in the
 # SQL database.
 def reparse_strange_entries(datastorage):
-    for idref in scraperwiki.sqlite.select("journalPostId FROM swdata WHERE caseid IS NULL or scrapestamputc IS NULL order by journalPostId"):
+    strange = "journalPostId FROM swdata WHERE caseid IS NULL OR scrapestamputc IS NULL OR agency IS NULL order by journalPostId"
+    for idref in scraperwiki.sqlite.select(strage1):
     	id = idref['journalPostId']
         if -1 == fetch_oep_entry(id, datastorage):
             print "Refetching %d failed, flush ID" % id
@@ -370,7 +371,7 @@ print "Starting to fetch journal entries " + str(datetime.datetime.now())
 scraperwiki.scrape("http://www.oep.no/")
 datastorage = []
 
-#reparse_strange_entries(datastorage)
+reparse_strange_entries(datastorage)
 
 # Update entries to handle <URL: https://rt.nuug.no:443/Ticket/Display.html?id=6342 >.
 # Used 2012-09-17
