@@ -339,25 +339,28 @@ def remove_original():
 # script was slightly broken and filled in non-existing entries in the
 # SQL database.
 def reparse_strange_entries(datastorage):
-    strange = "journalPostId FROM swdata WHERE caseid IS NULL OR scrapestamputc IS NULL OR agency IS NULL order by journalPostId"
-    for idref in scraperwiki.sqlite.select(strange):
-    	id = idref['journalPostId']
-        if -1 == fetch_oep_entry(id, datastorage):
-            print "Refetching %d failed, flush ID" % id
-            scraperwiki.sqlite.execute("DELETE from swdata where journalPostId = %d" % id)
-            if 0 < len(datastorage):
+    try:
+        strange = "journalPostId FROM swdata WHERE caseid IS NULL OR scrapestamputc IS NULL OR agency IS NULL order by journalPostId"
+        for idref in scraperwiki.sqlite.select(strange):
+            id = idref['journalPostId']
+            if -1 == fetch_oep_entry(id, datastorage):
+                print "Refetching %d failed, flush ID" % id
+                scraperwiki.sqlite.execute("DELETE from swdata where journalPostId = %d" % id)
+                if 0 < len(datastorage):
+                    save(data=datastorage)
+                    datastorage = []
+                else:
+                    print "Refetching %d" % id
+            if 50 <= len(datastorage):
                 save(data=datastorage)
                 datastorage = []
-        else:
-            print "Refetching %d" % id
-        if 50 <= len(datastorage):
+            time.sleep(0.2)
+        if 0 < len(datastorage):
             save(data=datastorage)
             datastorage = []
-        time.sleep(0.2)
-    if 0 < len(datastorage):
-        save(data=datastorage)
-        datastorage = []
-
+    except scraperwiki.sqlite.SqliteError, e:
+        # Most likely no table, keep going
+        pass
 #update_caseyear()
 
 #create_indexes()
