@@ -21,7 +21,6 @@ import re
 
 scraperwiki.scrape("http://www.gravferdsetaten.oslo.kommune.no/offentlig_journal/article43281-14384.html")
 
-lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
 agency = 'Oslo kommune, gravferdsetaten'

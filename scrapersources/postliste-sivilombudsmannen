@@ -19,7 +19,6 @@ import resource
 import sys
 import urlparse
 import re
-lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
 agency = 'Sivilombudsmannen'

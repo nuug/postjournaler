@@ -24,7 +24,6 @@ import re
 
 scraperwiki.scrape("http://www.havn.oslo.kommune.no/postjournal/")
 
-lazycache=scraperwiki.swimport('lazycache')
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
 agency = 'Oslo kommune, Oslo Havn KF'
