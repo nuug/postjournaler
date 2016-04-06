@@ -353,6 +353,7 @@ def reparse_strange_entries(datastorage):
         if 50 <= len(datastorage):
             save(data=datastorage)
             datastorage = []
+        time.sleep(0.2)
     if 0 < len(datastorage):
         save(data=datastorage)
         datastorage = []
