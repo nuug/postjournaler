@@ -340,7 +340,7 @@ def remove_original():
 # SQL database.
 def reparse_strange_entries(datastorage):
     strange = "journalPostId FROM swdata WHERE caseid IS NULL OR scrapestamputc IS NULL OR agency IS NULL order by journalPostId"
-    for idref in scraperwiki.sqlite.select(strage1):
+    for idref in scraperwiki.sqlite.select(strage):
     	id = idref['journalPostId']
         if -1 == fetch_oep_entry(id, datastorage):
             print "Refetching %d failed, flush ID" % id
