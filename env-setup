@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Set up the local scraperwiki python library
-if [ ! -d testlib ] ; then
-    mkdir testlib
+if [ ! -d testlib/scraperwiki-python ] ; then
+    mkdir -p testlib
     git clone https://github.com/petterreinholdtsen/scraperwiki-python.git \
 	testlib/scraperwiki-python
     (cd testlib/scraperwiki-python; git checkout -b localbranch)
