@@ -11,7 +11,7 @@ if [ ! -d testlib/scraperwiki-python ] ; then
 fi
 
 # Install the rest
-sudo apt-get install python-alembic python-beautifulsoup python-dateutil
+sudo apt-get install python-alembic python-beautifulsoup python-dateutil python-requests python-lxml python-cssselect
 if [ ! -h scrapersources/postliste-python-lib.py ] ; then
     ln -s postliste-python-lib scrapersources/postliste-python-lib.py
 fi
