@@ -196,6 +196,8 @@ def fetch_oep_entry(id, datastorage):
             vtype = fieldmap[vtype]
         if 'doctype' == vtype:
             value = doctypemap[value]
+        if 'exemption' == vtype and '-' == value:
+            value = None
         if 'caseid' == vtype:
             caseyear, caseseqnr = value.split("/")
             data['caseyear'] = caseyear
