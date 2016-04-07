@@ -113,10 +113,10 @@ def cpu_spent():
 
 def cpu_available():
     available = resource.getrlimit(resource.RLIMIT_CPU)[0]
-    # If no limit is set, assume 10 CPU seconds as the limit to avoid
+    # If no limit is set, assume 20 CPU seconds as the limit to avoid
     # running for more than a few minutes every time.
     if 0 > available:
-        available = 10
+        available = 20
     return available
 
 def url_from_id(id):
