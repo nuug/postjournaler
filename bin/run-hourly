@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /srv/scraper/postjournaler
+cd $(dirname $0)/..
 
 for scraper in $(grep '#  Run: hourly' scrapersources/*|cut -d: -f1|cut -d/ -f2); do
     echo
