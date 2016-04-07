@@ -391,8 +391,8 @@ reparse_strange_entries(datastorage)
 
 count = 10000
 skiplimit = 500
-# Random value fairly close to the most recent ID when this project started 2012-05-03
-max = min = startid = 3889259
+# Random value fairly close to the most recent ID when this project started 2016-04-07
+max = min = startid = 16682410
 try:
     max = scraperwiki.sqlite.select("max(journalPostId) as max from swdata")[0]["max"]
     if 0 < scraperwiki.sqlite.get_var('min_tested_id'):
