@@ -241,7 +241,4 @@ def scraper():
 #GET http://innsyn.hole.kommune.no/wfinnsyn.ashx?response=journalpost_detaljer&journalpostid=2012005569&
 #GET http://innsyn.hole.kommune.no/wfinnsyn.ashx?response=arkivsak_detaljer&arkivsakid=2006002016&
 
-if __name__ == "scraper":
-    scraper()
-else:
-    print "Not called as scraper"
+scraper()
