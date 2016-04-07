@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 # YAML-tagger:
 #  Type: statlig
-#  Status: finished
+#  Status: broken
 #  Name: Stortinget
 #  Format: PDF
 #  Datatype: ePhorte
 #  Vendor: Ergo
-#  Run: daily
+#  Run: notyet
+
+# The journal is no longer published as PDF, but as a web search
+# service, see
+# http://einnsyn.stortinget.no/einnsyn/RegistryEntry/DocumentDetails/74000
+# for an example.
 
 # Based on the scraper advanced-scraping-pdf
 # See also 
