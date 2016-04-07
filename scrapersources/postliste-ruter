@@ -59,7 +59,7 @@ def process_journal_pdfs(parser, listurl, errors):
     html = scraperwiki.scrape(listurl)
     root = lxml.html.fromstring(html)
     html = None
-    for ahref in root.cssselect("div.attachments a"):
+    for ahref in root.cssselect("div a"):
         href = ahref.attrib['href']
         url = urlparse.urljoin(listurl, href)
         if -1 != href.find("file://") or -1 == url.find(".pdf"):
