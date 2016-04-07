@@ -7,7 +7,7 @@ file=$1
 
 topdir=$(cd $(dirname $0); pwd)
 
-export PYTHONPATH=`pwd`/testlib/scraperwiki-python:`pwd`/testlib/dumptruck
+export PYTHONPATH=`pwd`/testlib/scraperwiki-python:`pwd`/testlib/lazycache
 
 SCRAPERWIKI_DATABASE_NAME=sqlite:///$file.sqlite
 export SCRAPERWIKI_DATABASE_NAME
