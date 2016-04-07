@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cd /srv/scraper/postjournaler
+
+for scraper in $(grep '#  Run: hourly' scrapersources/*|cut -d: -f1|cut -d/ -f2); do
+    echo
+    echo $scraper
+    echo
+    time ./run-scraper $scraper
+done
