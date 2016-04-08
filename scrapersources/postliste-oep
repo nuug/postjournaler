@@ -400,7 +400,7 @@ try:
     if 0 < scraperwiki.sqlite.get_var('min_tested_id'):
         saved_min = scraperwiki.sqlite.get_var('min_tested_id')
     else:
-        saved_min = min
+        saved_min = min + 1
     sql_min = scraperwiki.sqlite.select("min(journalPostId) as min from swdata")[0]["min"]
     print "Saved min: " + str(saved_min) + ", sql min: " + str(sql_min)
     if sql_min < saved_min:
