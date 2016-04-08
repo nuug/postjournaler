@@ -22,7 +22,15 @@ writetries = 8
 # Try several times if there is a problem with the service
 readtries = 3
 
+# Set to false to not look for earlier entries before the earliest in
+# the database.
 read_backwards = True
+
+# Set to False not not rescan entries with a latency to discover
+# updates and entries introduced after we checked the ID the first
+# time.
+rescan_after_a_while = True
+
 
 # http://www.oep.no/search/resultSingle.html?journalPostId=1000000
 # http://www.oep.no/search/resultSingle.html?journalPostId=3889259
@@ -418,13 +426,17 @@ if min >= 0 and read_backwards:
     fetched = fetch_range(datastorage, min, min - count, -1)
     print "Fetched " + str(fetched) + " old journal entries, cpu spent: " + str(cpu_spent())
 
-# Rescan to see if we missed something, and to get the latest version
-rescan_min = scraperwiki.sqlite.get_var('min_rescan_id')
-if rescan_min is None:
-    rescan_min = 0
-rescan_count = 8000
-if rescan_min + rescan_count < max - 100000:
-    end = rescan_min + rescan_count
-    fetched = fetch_range(datastorage, rescan_min, end, 1)
-    save_var('min_rescan_id', end - 1)
-    print "Fetched %d rescanned journal entries (%d-%d), cpu spent: %f" % (fetched, rescan_min, end, cpu_spent())
+if rescan_after_a_while:
+    rescan_count = 8000
+    rescan_latency = 100000
+
+    # Rescan to see if we missed something, and to get the latest version
+    rescan_min = scraperwiki.sqlite.get_var('min_rescan_id')
+    if rescan_min is None:
+        rescan_min = 0
+    if rescan_min + rescan_count < max - rescan_latency:
+        end = rescan_min + rescan_count
+        fetched = fetch_range(datastorage, rescan_min, end, 1)
+        save_var('min_rescan_id', end - 1)
+        print "Fetched %d rescanned journal entries (%d-%d), cpu spent: %f" \
+            % (fetched, rescan_min, end, cpu_spent())
