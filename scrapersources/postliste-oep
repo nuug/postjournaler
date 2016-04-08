@@ -200,8 +200,8 @@ def fetch_oep_entry(id, datastorage):
             value = None
         if 'caseid' == vtype:
             caseyear, caseseqnr = value.split("/")
-            data['caseyear'] = caseyear
-            data['caseseqnr'] =  caseseqnr
+            data['caseyear'] = int(caseyear)
+            data['caseseqnr'] =  int(caseseqnr)
         data[vtype] = value
 #    print str(id) + ": " + str(data)
     data['scrapestamputc'] = datetime.datetime.now()
