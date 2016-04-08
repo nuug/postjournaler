@@ -22,7 +22,7 @@ writetries = 8
 # Try several times if there is a problem with the service
 readtries = 3
 
-read_backwards = False
+read_backwards = True
 
 # http://www.oep.no/search/resultSingle.html?journalPostId=1000000
 # http://www.oep.no/search/resultSingle.html?journalPostId=3889259
