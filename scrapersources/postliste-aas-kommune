@@ -158,5 +158,4 @@ for n in xrange(skiplimit):
     fetch_day(parser, newest + aday * n)
 
 for n in xrange(skiplimit):
-    print n
     fetch_day(parser, oldest - aday * n)
