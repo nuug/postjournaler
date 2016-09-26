@@ -21,7 +21,7 @@ from dateutil.relativedelta import relativedelta
 scraperwiki.scrape("http://www.as.kommune.no/offentlig-journal-og-innsyn-i-arkiv.352152.no.html")
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
-agency = "Ås kommune"
+agency = u'Ås kommune'
 baseurl = "http://www.as.kommune.no"
 
 print "Fetching public journal!"
