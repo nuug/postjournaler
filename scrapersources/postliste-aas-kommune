@@ -1,0 +1,131 @@
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: unfinished/draft
+#  Name: Ås kommune
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Run: daily
+#  Missingfields: journalseqnr, journalyear, journalid
+
+import scraperwiki
+import urllib2
+import lxml.html
+import re
+import dateutil.parser
+from collections import deque
+import datetime
+from dateutil.relativedelta import relativedelta
+
+scraperwiki.scrape("http://www.as.kommune.no/offentlig-journal-og-innsyn-i-arkiv.352152.no.html")
+postlistelib=scraperwiki.swimport('postliste-python-lib')
+
+agency = "Ås kommune"
+baseurl = "http://www.as.kommune.no"
+
+print "Fetching public journal!"
+
+parser = postlistelib.JournalParser(agency=agency)
+
+fieldmap = {
+    'Tilh&oslash;rer sak:' : 'casedesc',
+    'Dokumentdato:' : 'docdate',
+    'Tilgangskode:' : 'exemption',
+    'Dokumenttype:' : 'doctype',
+    'Ansvarlig enhet:' : 'saksansvarligenhet',
+    }
+
+typemap = {
+    u'Inngående dokument (I)' : 'I',
+    u'Utgående dokument (U)' : 'U',
+    }
+          
+
+def saver(unique_keys, data):
+#    return
+    #print "Not saving data"
+    scraperwiki.sqlite.save(unique_keys, data)
+
+def expand_year(year):
+    year = int(year)
+    if year > 50:
+        year = year + 1900
+    else:
+        year = year + 2000
+    return year
+
+def fetch_day(parser, datastore, day):
+    dayurl = 'http://www.as.kommune.no/offentlig-journal-og-innsyn-i-arkiv.352152.no.html?pjdate=%s&pjfind=&pjdoktype=&cat=352152' % day
+
+    html = postlistelib.fetch_url_harder(dayurl)
+#    print html
+    root = lxml.html.fromstring(html.decode('utf-8'))
+    count = 0
+    for tr in root.cssselect("table.postjournal > tr"):
+        data = {
+            'agency' : parser.agency,
+            'scrapedurl' : dayurl,
+            'scrapestamputc' : datetime.datetime.now()
+            }
+        count = count + 1
+#        print "=========== %d =============" % count
+#        print tr.text_content()
+
+        arkivsaksref = tr.cssselect("td div.doknr")[0].text_content().strip()
+        caseyear = 0
+        caseseqnr = 0
+        casedocseq = 0
+        caseid = 'unknown'
+        matchObj = re.match( r'(\d+)/(\d+)\s*-\s*(\d+)$', arkivsaksref, re.M|re.I)
+        if matchObj:
+            caseyear = int(matchObj.group(1))
+            data['caseseqnr'] = int(matchObj.group(2))
+            data['casedocseq'] = int(matchObj.group(3))
+            data['caseyear']  = expand_year(caseyear)
+            data['caseid'] = str(data['caseyear']) + "/" + str(data['caseseqnr'])
+            data['arkivsaksref'] = arkivsaksref
+        else:
+            print "error: really broken Arkivsaksnr: %s" % arkivsaksref
+            raise Exception("unable to parse url %s" % dayurl)
+
+        data['docdesc'] = tr.cssselect("div.tittel")[0].text_content().strip()
+
+        datofratil = tr.cssselect("div.fratil")[0]
+
+        for dtr in tr.cssselect("table.postjournaldetaljer > tr"):
+            entry = dtr.cssselect('td')
+            heading = entry[0].text_content().strip()
+            if heading in fieldmap:
+                data[fieldmap[heading]] = entry[1].text_content()
+
+        if data['doctype'] in typemap:
+            data['doctype'] = typemap[data['doctype']]
+        else:
+            raise Exception("unknown document type")
+
+        if 'docdate' in data:
+            data['docdate'] = dateutil.parser.parse(data['docdate'],
+                                                    dayfirst=True).date()
+        if 'exemption' in data:
+            data['exemption'] = data['exemption'].replace('Unntatt offentlighet, ', '')
+
+        dato, fratil = datofratil.text_content().split('-', 1)
+        data['recorddate'] = dateutil.parser.parse(dato.replace('Dato: ', '').strip(), dayfirst=True).date()
+        fratil = fratil.strip().replace('Avsender:', '').strip()
+        fratil = fratil.strip().replace('Mottaker:', '').strip()
+        if parser.is_sender_doctype(data['doctype']):
+            fratilfield = 'sender'
+        elif parser.is_recipient_doctype(data['doctype']):
+             fratilfield = 'recipient'
+        data[fratilfield] = fratil
+
+        print data
+        parser.verify_entry(data)
+        datastore.append(data)
+
+datastore = []
+#fetch_day(parser, datastore, '03.09.2016')
+fetch_day(parser, datastore, '02.09.2016')
+#fetch_day(parser, datastore, '01.09.2016')
+saver(unique_keys=['arkivsaksref'], data=datastore)
