@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # YAML-tagger:
 #  Type: kommune
-#  Status: unfinished/draft
+#  Status: finished
 #  Name: Ås kommune
 #  Format: HTML
 #  Datatype: ?
 #  Vendor: ?
 #  Run: daily
 #  Missingfields: journalseqnr, journalyear, journalid
+#  Publish duration: 3 months
 
 import scraperwiki
 import urllib2
@@ -24,7 +25,7 @@ postlistelib=scraperwiki.swimport('postliste-python-lib')
 agency = u'Ås kommune'
 baseurl = "http://www.as.kommune.no"
 
-print "Fetching public journal!"
+print "Fetching public journal for %s!" % agency
 
 parser = postlistelib.JournalParser(agency=agency)
 
@@ -40,12 +41,9 @@ typemap = {
     u'Inngående dokument (I)' : 'I',
     u'Utgående dokument (U)' : 'U',
     }
-          
 
-def saver(unique_keys, data):
-#    return
-    #print "Not saving data"
-    scraperwiki.sqlite.save(unique_keys, data)
+class NoDataEntries(LookupError):
+    pass
 
 def expand_year(year):
     year = int(year)
@@ -55,24 +53,25 @@ def expand_year(year):
         year = year + 2000
     return year
 
-def fetch_day(parser, datastore, day):
-    dayurl = 'http://www.as.kommune.no/offentlig-journal-og-innsyn-i-arkiv.352152.no.html?pjdate=%s&pjfind=&pjdoktype=&cat=352152' % day
-
-    html = postlistelib.fetch_url_harder(dayurl)
-#    print html
-    root = lxml.html.fromstring(html.decode('utf-8'))
-    count = 0
+def parse_day_html(parser, datastore, dayurl, html):
+    root = lxml.html.fromstring(html)
+#    count = 0
     for tr in root.cssselect("table.postjournal > tr"):
         data = {
             'agency' : parser.agency,
             'scrapedurl' : dayurl,
             'scrapestamputc' : datetime.datetime.now()
             }
-        count = count + 1
+#        count = count + 1
 #        print "=========== %d =============" % count
 #        print tr.text_content()
-
-        arkivsaksref = tr.cssselect("td div.doknr")[0].text_content().strip()
+        doknrroot = tr.cssselect("td div.doknr")
+        if not doknrroot:
+            # No records found, just return
+            msg = "No entries found in %s" % dayurl
+            print msg
+            raise NoDataEntries(msg)
+        arkivsaksref = doknrroot[0].text_content().strip()
         caseyear = 0
         caseseqnr = 0
         casedocseq = 0
@@ -120,12 +119,44 @@ def fetch_day(parser, datastore, day):
              fratilfield = 'recipient'
         data[fratilfield] = fratil
 
-        print data
+#        print data
         parser.verify_entry(data)
         datastore.append(data)
 
-datastore = []
-#fetch_day(parser, datastore, '03.09.2016')
-fetch_day(parser, datastore, '02.09.2016')
-#fetch_day(parser, datastore, '01.09.2016')
-saver(unique_keys=['arkivsaksref'], data=datastore)
+def fetch_day(parser, day):
+    datastore = []
+    dayurl = 'http://www.as.kommune.no/offentlig-journal-og-innsyn-i-arkiv.352152.no.html?pjdate=%s&pjfind=&pjdoktype=&cat=352152' % day.strftime('%d.%m.%Y')
+    html = postlistelib.fetch_url_harder(dayurl).decode('utf-8')
+#    print html
+    try:
+        parse_day_html(parser, datastore, dayurl, html)
+        scraperwiki.sqlite.save(unique_keys=['arkivsaksref'], data=datastore)
+    except NoDataEntries, e:
+    	return
+    except Exception, e:
+        print html
+        raise
+
+aday = datetime.timedelta(1) # one day delta
+newest = None
+try:
+    newest = dateutil.parser.parse(scraperwiki.sqlite.select("max(recorddate) as max from swdata")[0]["max"], dayfirst=False).date()
+    oldest = dateutil.parser.parse(scraperwiki.sqlite.select("min(recorddate) as min from swdata")[0]["min"], dayfirst=False).date()
+except scraperwiki.sqlite.SqliteError:
+    # Table not created yet, ignore the error
+    pass
+
+if not newest:
+    # Bootstrap a month ago
+    newest = datetime.datetime.today() - aday * 30
+    oldest = newest
+
+skiplimit = 10
+
+# Look forward one week to at least get past the weekends
+for n in xrange(skiplimit):
+    fetch_day(parser, newest + aday * n)
+
+for n in xrange(skiplimit):
+    print n
+    fetch_day(parser, oldest - aday * n)
