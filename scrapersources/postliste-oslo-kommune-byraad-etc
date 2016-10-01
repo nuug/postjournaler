@@ -1,0 +1,155 @@
+# -*- coding: utf-8 -*-
+# YAML-tagger:
+#  Type: kommune
+#  Status: finished
+#  Name: Oslo kommunes byrådsavdelinger og Rådhusets forvaltningstjeneste
+#  Format: HTML
+#  Datatype: ?
+#  Vendor: ?
+#  Run: daily
+#  Missingfields: journalseqnr, journalyear, journalid
+#  Publish duration: ? months
+
+import scraperwiki
+import urllib
+import urllib2
+import lxml.html
+import re
+import dateutil.parser
+import datetime
+from dateutil.relativedelta import relativedelta
+
+# Some example URLs
+#http://byr-journal.cloudapp.net/Journal/SearchRelated?caseYear=2016&sequenceNumber=451
+#http://byr-journal.cloudapp.net/Journal/Search?searchStringAdv=FromDate%3D01.09.2016,department%3DAll
+#http://byr-journal.cloudapp.net/Journal/Search?searchStringAdv=FromDate%3D01.09.2016,ToDate%3D01.09.2016,department%3DAll
+#http://byr-journal.cloudapp.net/Journal/Search/?querytype=and&amp;offset=10
+#http://byr-journal.cloudapp.net/Journal/Search/?querytype=and&FromDate=23.08.2016&ToDate=23.08.2016&offset=20
+# http://byr-journal.cloudapp.net/Journal/Search?searchStringAdv=FromDate%3D23.08.2016,ToDate%3D23.08.2016,department%3DAll
+
+scraperwiki.scrape("https://www.oslo.kommune.no/postjournal/")
+postlistelib=scraperwiki.swimport('postliste-python-lib')
+
+agency = u'Oslo kommune, Byrådsavdelingene'
+baseurl = "http://www.oslo.kommune.no"
+
+print "Fetching public journal for %s!" % agency
+
+parser = postlistelib.JournalParser(agency=agency)
+
+fieldmap = {
+    'Dokumentdato'  : 'docdate',
+    'Dokumenttype'  : 'doctype',
+    'Sak'           : 'casedesc',
+    'Journaldato'   : 'recorddate',
+    'Dato'          : None, # Duplicate of recorddate
+    'Saksansvarlig' : 'saksansvarligenhet',
+    'Tilgangskode'  : 'exemption',
+    'Fra'           : 'sender',
+    'Til'           : 'recipient',
+    'Til / Fra'     : None, # Internal note, field empty
+    }
+
+class NoDataEntries(LookupError):
+    pass
+
+def parse_day_html(parser, datastore, dayurl, html):
+    root = lxml.html.fromstring(html)
+    count = 0
+    for row in root.cssselect("div.document-rows"):
+        count = count + 1
+        data = {
+            'agency' : parser.agency,
+            'scrapedurl' : dayurl,
+            'scrapestamputc' : datetime.datetime.now()
+            }
+
+        head = row.cssselect("div.data-column div h3")[0].text_content().strip()
+        (arkivsaksref, docdesc) = head.split(" ", 1)
+        data['docdesc'] = docdesc
+
+        caseyear = 0
+        caseseqnr = 0
+        casedocseq = 0
+        caseid = 'unknown'
+        matchObj = re.match( r'(\d+)/(\d+)\s*-\s*(\d+)$', arkivsaksref, re.M|re.I)
+        if matchObj:
+            caseyear = int(matchObj.group(1))
+            data['caseseqnr'] = int(matchObj.group(2))
+            data['casedocseq'] = int(matchObj.group(3))
+            data['caseyear']  = caseyear
+            data['caseid'] = str(data['caseyear']) + "/" + str(data['caseseqnr'])
+            data['arkivsaksref'] = arkivsaksref
+        else:
+            print "error: really broken Arkivsaksnr: %s" % arkivsaksref
+            raise Exception("unable to parse url %s" % dayurl)
+
+        for tagclass in ['journal-recipients', 'journal-details']:
+            for d in row.cssselect("div.%s > dl" % tagclass):
+                field = d.cssselect("dt")[0].text_content().strip()
+                value = d.cssselect("dd")[0].text_content().strip()
+                if field in fieldmap:
+                    if fieldmap[field] is not None: # Ignore duplicates
+                        field = fieldmap[field]
+                else:
+                    raise Exception("unknown field %s in %s" % (field, dayurl))
+                if value and '' != value:
+                    data[field] = value
+        for field in ['docdate', 'journaldate']:
+            if field in data:
+                data[field] = dateutil.parser.parse(data[field],
+                                                    dayfirst=True).date()
+        parser.verify_entry(data)
+        datastore.append(data)
+        print data
+
+    return count
+
+def fetch_day(parser, day):
+    datastore = []
+    daystr = day.strftime('%d.%m.%Y')
+    try:
+        offset = 0
+        offsetstep = 10
+        while True:
+            dayurl = "http://byr-journal.cloudapp.net/Journal/Search/?querytype=and&FromDate=%s&ToDate=%s&offset=%d" % (daystr, daystr, offset)
+            html = postlistelib.fetch_url_harder(dayurl).decode('utf-8')
+#            print html
+            count = parse_day_html(parser, datastore, dayurl, html)
+#            print count, dayurl
+            if 0 == count:
+#                print "Ending day at offset %d" % offset
+                return
+            scraperwiki.sqlite.save(unique_keys=['arkivsaksref'], data=datastore)
+            datastore = []
+            offset = offset + offsetstep
+    except Exception, e:
+        print html
+        print e
+        raise
+
+aday = datetime.timedelta(1) # one day delta
+newest = None
+try:
+    newest = dateutil.parser.parse(scraperwiki.sqlite.select("max(recorddate) as max from swdata")[0]["max"], dayfirst=False).date()
+    oldest = dateutil.parser.parse(scraperwiki.sqlite.select("min(recorddate) as min from swdata")[0]["min"], dayfirst=False).date()
+except scraperwiki.sqlite.SqliteError:
+    # Table not created yet, ignore the error
+    pass
+
+if not newest:
+    # Bootstrap a month ago
+    newest = datetime.datetime.today() - aday * 30
+    oldest = newest
+
+skiplimit = 10
+
+# Look forward one week to at least get past the weekends
+for n in xrange(skiplimit):
+    fetch_day(parser, newest + aday * n)
+
+for n in xrange(skiplimit):
+    fetch_day(parser, oldest - aday * n)
+
+# FIXME should rescan after a while to make sure we get all the
+# entries when moving forward
