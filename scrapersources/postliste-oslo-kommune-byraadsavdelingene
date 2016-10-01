@@ -101,7 +101,7 @@ def parse_day_html(parser, datastore, dayurl, html):
                                                     dayfirst=True).date()
         parser.verify_entry(data)
         datastore.append(data)
-        print data
+#        print data
 
     return count
 
