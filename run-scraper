@@ -12,4 +12,8 @@ export PYTHONPATH=`pwd`/testlib/scraperwiki-python:`pwd`/testlib/lazycache
 SCRAPERWIKI_DATABASE_NAME=sqlite:///$file.sqlite
 export SCRAPERWIKI_DATABASE_NAME
 
+# Tell python to use UTF-8 on stdout
+PYTHONIOENCODING=UTF-8
+export PYTHONIOENCODING
+
 (cd data ; python $topdir/scrapersources/$file)
