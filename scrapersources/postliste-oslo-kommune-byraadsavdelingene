@@ -135,11 +135,14 @@ def fetch_day(parser, day):
             if 0 == count:
 #                print "Ending day at offset %d" % offset
                 return totalcount
-            scraperwiki.sqlite.save(unique_keys=['arkivsaksref'], data=datastore)
-            datastore = []
             offset = offset + offsetstep
+        scraperwiki.sqlite.save(unique_keys=['arkivsaksref'], data=datastore)
+        datastore = []
+    except scraperwiki.CPUTimeExceededError, e:
+        print "error: Ran out of time, abort scraping"
+        pass
     except Exception, e:
-        print html
+#        print html
         print e
         raise
 
@@ -157,19 +160,28 @@ if not newest:
     newest = datetime.datetime.today() - aday * 30
     oldest = newest
 
+#print oldest, newest
+
 skiplimit = 10
 
 totalcount = 0
-# Look forward one week to at least get past the weekends
-for n in xrange(skiplimit):
-    totalcount = totalcount + fetch_day(parser, newest + aday * n)
-    if cpu_spent() > cpu_available():
+
+# Look forward one week to at least get past the weekends, rescan the
+# last day in case new records showed up in the mean time.
+for n in xrange(skiplimit+1):
+    day = newest + aday * n
+#    print day
+    totalcount = totalcount + fetch_day(parser, day)
+    if cpu_spent() > cpu_available() + 5:
         print "Running short on CPU time, exiting"
         os.exit(0)
 
+# Scan backwards, one day before the oldest entry in the database
 for n in xrange(skiplimit):
-    totalcount = totalcount + fetch_day(parser, oldest - aday * n)
-    if cpu_spent() > cpu_available():
+    day = oldest - aday * (n+1)
+#    print day
+    totalcount = totalcount + fetch_day(parser, day)
+    if cpu_spent() > cpu_available() + 5:
         print "Running short on CPU time, exiting"
         os.exit(0)
 
