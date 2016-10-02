@@ -95,7 +95,7 @@ def parse_day_html(parser, datastore, dayurl, html):
                     raise Exception("unknown field %s in %s" % (field, dayurl))
                 if value and '' != value:
                     data[field] = value
-        for field in ['docdate', 'journaldate']:
+        for field in ['docdate', 'recorddate']:
             if field in data:
                 data[field] = dateutil.parser.parse(data[field],
                                                     dayfirst=True).date()
