@@ -15,6 +15,7 @@ import urllib
 import urllib2
 import lxml.html
 import re
+import resource
 import dateutil.parser
 import datetime
 from dateutil.relativedelta import relativedelta
@@ -52,6 +53,18 @@ fieldmap = {
 
 class NoDataEntries(LookupError):
     pass
+
+def cpu_spent():
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    return getattr(usage, 'ru_utime') + getattr(usage, 'ru_stime')
+
+def cpu_available():
+    available = resource.getrlimit(resource.RLIMIT_CPU)[0]
+    # If no limit is set, assume 20 CPU seconds as the limit to avoid
+    # running for more than a few minutes every time.
+    if 0 > available:
+        available = 20
+    return available
 
 def parse_day_html(parser, datastore, dayurl, html):
     root = lxml.html.fromstring(html)
@@ -108,6 +121,7 @@ def parse_day_html(parser, datastore, dayurl, html):
 def fetch_day(parser, day):
     datastore = []
     daystr = day.strftime('%d.%m.%Y')
+    totalcount = 0
     try:
         offset = 0
         offsetstep = 10
@@ -116,10 +130,11 @@ def fetch_day(parser, day):
             html = postlistelib.fetch_url_harder(dayurl).decode('utf-8')
 #            print html
             count = parse_day_html(parser, datastore, dayurl, html)
+            totalcount = totalcount + count
 #            print count, dayurl
             if 0 == count:
 #                print "Ending day at offset %d" % offset
-                return
+                return totalcount
             scraperwiki.sqlite.save(unique_keys=['arkivsaksref'], data=datastore)
             datastore = []
             offset = offset + offsetstep
@@ -144,12 +159,21 @@ if not newest:
 
 skiplimit = 10
 
+totalcount = 0
 # Look forward one week to at least get past the weekends
 for n in xrange(skiplimit):
-    fetch_day(parser, newest + aday * n)
+    totalcount = totalcount + fetch_day(parser, newest + aday * n)
+    if cpu_spent() > cpu_available():
+        print "Running short on CPU time, exiting"
+        os.exit(0)
 
 for n in xrange(skiplimit):
-    fetch_day(parser, oldest - aday * n)
+    totalcount = totalcount + fetch_day(parser, oldest - aday * n)
+    if cpu_spent() > cpu_available():
+        print "Running short on CPU time, exiting"
+        os.exit(0)
+
+print "Fetched %d journal entries" % totalcount
 
 # FIXME should rescan after a while to make sure we get all the
 # entries when moving forward
