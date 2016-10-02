@@ -18,6 +18,7 @@ import re
 import resource
 import dateutil.parser
 import datetime
+import sys
 from dateutil.relativedelta import relativedelta
 
 # Some example URLs
@@ -134,13 +135,16 @@ def fetch_day(parser, day):
 #            print count, dayurl
             if 0 == count:
 #                print "Ending day at offset %d" % offset
-                return totalcount
+                break
             offset = offset + offsetstep
         scraperwiki.sqlite.save(unique_keys=['arkivsaksref'], data=datastore)
         datastore = []
+        return totalcount
     except scraperwiki.CPUTimeExceededError, e:
         print "error: Ran out of time, abort scraping"
-        pass
+        # Not saving, to avoid saving partial day.  Better to scrape
+        # the entire day the next run.
+        return 0
     except Exception, e:
 #        print html
         print e
@@ -172,18 +176,18 @@ for n in xrange(skiplimit+1):
     day = newest + aday * n
 #    print day
     totalcount = totalcount + fetch_day(parser, day)
-    if cpu_spent() > cpu_available() + 5:
+    if cpu_spent() > (cpu_available() - 3):
         print "Running short on CPU time, exiting"
-        os.exit(0)
+        sys.exit(0)
 
 # Scan backwards, one day before the oldest entry in the database
 for n in xrange(skiplimit):
     day = oldest - aday * (n+1)
 #    print day
     totalcount = totalcount + fetch_day(parser, day)
-    if cpu_spent() > cpu_available() + 5:
+    if cpu_spent() > (cpu_available() - 3):
         print "Running short on CPU time, exiting"
-        os.exit(0)
+        sys.exit(0)
 
 print "Fetched %d journal entries" % totalcount
 
