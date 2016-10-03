@@ -191,5 +191,18 @@ for n in range(-1, -skiplimit, -1):
 
 print "Fetched %d journal entries" % totalcount
 
-# FIXME should rescan after a while to make sure we get all the
-# entries when moving forward
+# Need to rescan after a while to make sure we get the entries that
+# take a while to show up when moving forward.  Idea: Revisit all days
+# where the record date is less than 30 days after the scraper date,
+# allowing records to change for 30 days until we stop rescraping
+# them.  But wait 15 days before scraping again, to avoid scraping the
+# same day over and over.
+totalcount = 0
+for drec in scraperwiki.sqlite.select("DISTINCT(recorddate) as d FROM swdata WHERE JULIANDAY(scrapestamputc) - JULIANDAY(recorddate) < 30 AND JULIANDAY('now') - JULIANDAY(scrapestamputc) > 15"):
+    day = dateutil.parser.parse(drec['d'], dayfirst=False).date()
+    print day
+    totalcount = totalcount + fetch_day(parser, day)
+    if cpu_spent() > (cpu_available() - 3):
+        print "Running short on CPU time, exiting"
+        sys.exit(0)
+print "Rescanned %d journal entries" % totalcount
