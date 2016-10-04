@@ -6,8 +6,11 @@
 #  Format: HTML
 #  Datatype: ?
 #  Vendor: Visma
+#  Run: notyet
 #  Missingfields: casedocseq
 
+import datetime
+import resource
 import scraperwiki
 import urllib2
 import urlparse
@@ -22,6 +25,18 @@ starturl = "https://www.narvik.kommune.no/innsyn/postliste/"
 scraperwiki.scrape(starturl)
 postlistelib=scraperwiki.swimport('postliste-python-lib')
 
+def cpu_spent():
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    return getattr(usage, 'ru_utime') + getattr(usage, 'ru_stime')
+
+def cpu_available():
+    available = resource.getrlimit(resource.RLIMIT_CPU)[0]
+    # If no limit is set, assume 20 CPU seconds as the limit to avoid
+    # running for more than a few minutes every time.
+    if 0 > available:
+        available = 20
+    return available
+
 def saver(unique_keys, data):
 #    return
     #print "Not saving data"
@@ -35,18 +50,42 @@ def expand_year(year):
         year = year + 2000
     return year
 
-def fetch_postjournal_day(parser, url, html, saver):
+fieldmap = {
+    'Journaldato:' : 'recorddate',
+    'Brevdato:'    : 'docdate',
+    'Hjemmel:'     : 'exemption',
+    'Dokumentansvarlig:'   : 'saksansvarlig',
+    'Journalpostkategori:' : 'journalcategory',
+}
+
+def fetch_postjournal_entry(parser, datastore, entryurl):
+    print entryurl
+    html = postlistelib.fetch_url_harder(entryurl)
     root = lxml.html.fromstring(html)
 #    print html
+
+    data = {
+        'agency'         : parser.agency,
+        'scrapedurl'     : entryurl,
+        'scrapestamputc' : datetime.datetime.now(),
+        'casedocseq'     : 'unknown',
+        }
     
-    entryqueue = []
-    for div in root.cssselect("table.inner-max-width"):
+    entryqueue = {}
+    for div in root.cssselect("table.i-bgw"):
         trs = div.cssselect("tr")
         for tr in trs:
             field = tr.cssselect("th")[0].text_content().strip()
             value = tr.cssselect("td")[0].text_content().strip()
-            print "F: %s V: %s" % (field, value)
-            entry[field] = value
+#            print "F: %s V: %s" % (field, value)
+            entryqueue[field] = value
+            if field in fieldmap:
+                data[fieldmap[field]] = value
+#    print entryqueue
+
+    if 'DokumentID:' not in entryqueue:
+        # No such ID, move along
+        return False
 
 # F: DokumentID: V: 14/26261
 # F: ArkivsakID: V: 14/1861
@@ -57,108 +96,163 @@ def fetch_postjournal_day(parser, url, html, saver):
 # F: Dokumentansvarlig: V: Pedersen, Ingrid Sværd
 
 
-    docdesc = entry['Tittel på dokumentet:'].strip()
-    casedesc = entry['Tittel på saken:'].strip()
+    (journalid, docdesc) = entryqueue['DokumentID:'].strip().split('-', 1)
+    data['docdesc'] = docdesc.strip()
+    journalid = journalid.strip()
+    (journalyear, journalseqnr) = journalid.split('/')
+    journalyear = expand_year(journalyear)
+    journalseqnr = int(journalseqnr)
+    journalid = "%d/%d" % (journalyear, journalseqnr)
 
+    (caseid, casedesc) = entryqueue['ArkivsakID:'].strip().split('-', 1)
+    data['casedesc'] = casedesc.strip()
+    caseid = caseid.strip()
+    (caseyear, caseseqnr) = caseid.split('/')
+    caseyear = expand_year(caseyear)
+    caseseqnr = int(caseseqnr)
+    caseid = "%d/%d" % (caseyear, caseseqnr)
 
-    # doctype
-    root.cssselect("h1.header-head")
-
-    # recipient
-    root.cssselect("div.dokmottakere")
-
-    return
-    if False:
-        data = {
-            'agency' : parser.agency,
-            'recorddate' : recorddate.date(),
-            'docdate' : docdate.date(),
-            'docdesc' : docdesc,
-            'casedesc' : casedesc,
-
-            'caseyear' : int(caseyear),
-            'caseseqnr' : int(caseseqnr),
-            'casedocseq' : int(casedocseq),
-            'caseid' : caseid,
-            'doctype' : doctype,
-
-#            'journalseqnr' : int(journalseqnr),
-#            'journalyear' : int(journalyear),
-#            'journalid' : journalid,
-
-            'saksbehandler' : saksbehandler,
-#            'saksansvarlig' : saksansvarlig.strip(),
-#            'saksansvarligenhet' : saksansvarligenhet.strip(),
-
-            'arkivsaksref' : arkivsaksref,
-#            'laapenr' : laapenr,
-
-            'scrapedurl' : url,
-            'scrapestamputc' : datetime.datetime.now()
+    doctypemap = {
+        u'Innkommende dokument' : 'I',
+        u'Utgående dokument'    : 'U',
         }
+    # doctype
+    doctypestr = root.cssselect("div.sec > h1")[0].text_content()
+    doctype = doctypemap[doctypestr]
+
+    for field in ['docdate', 'recorddate']:
+        data[field] = dateutil.parser.parse(data[field],
+                                            dayfirst=True).date()
+
+    # recipient/sender
+    mottakere = root.cssselect("div.dokmottakere")
+    if mottakere:
+        fratil = mottakere[0].text_content()
+        if parser.is_sender_doctype(doctype):
+            fratilfield = 'sender'
+        elif parser.is_recipient_doctype(doctype):
+            fratilfield = 'recipient'
         if fratil is not None:
             data[fratilfield] = fratil
-        if exemption is not None:
-            data['exemption'] = exemption
+    
+    data['caseid'] = caseid
+    data['doctype'] = doctype
+    data['caseyear'] = caseyear
+    data['caseseqnr'] = caseseqnr
+#    data['casedocseq'] = int(casedocseq)
 
-        print data
-        parser.verify_entry(data)
-        datastore.append(data)
-    saver(unique_keys=['arkivsaksref'], data=datastore)
+    data['journalyear'] = journalyear
+    data['journalseqnr'] = journalseqnr
+    data['journalid'] = journalid
 
-def parse_day_urls(starturl, urllist):
-    html = scraperwiki.scrape(starturl)
-    root = lxml.html.fromstring(html)
-    for ahref in root.cssselect("a.headlinelink"):
-        href = ahref.attrib['href']
-        url = urlparse.urljoin(starturl, href)
-        urllist.append(url)
-        
-    nexturls = root.cssselect("a.next")
-    for ahref in nexturls:
-        href = ahref.attrib['href']
-        if -1 != href.find("cat="):
-            print href
-            parse_day_urls(urlparse.urljoin(starturl, href), urllist)
-    return urllist
+#    data['saksbehandler'] = saksbehandler
+#    data['saksansvarlig'] = saksansvarlig.strip()
+#    data['saksansvarligenhet'] = saksansvarligenhet.strip()
 
-print "Fetching public journal!"
+#    data['arkivsaksref'] = arkivsaksref
+#    data['laapenr'] = laapenr
 
-parser = postlistelib.JournalParser(agency=agency)
+#    print data
+    parser.verify_entry(data)
+    datastore.append(data)
+    return False
 
-urllist = []
-parse_day_urls(starturl, urllist)
+def journalid2webid(journalid):
+    (year, seqnr) = str(journalid).split('/')
+    return "%d%06d" % (int(year), int(seqnr))
 
-entryurl = "https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_detaljer&journalpostid=2014026261&scripturi=/innsyn.aspx&skin=infolink&Mid1=1543&"
+def fetch_day(parser, date):
+    datestr = date.strftime("%Y-%m-%d")
+    datastore = []
+    startrow = 0
+    rowinc = 10
+    totalcount = 0
+    while True:
+        url = 'https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_postliste&MId1=1543&scripturi=/innsyn.aspx&skin=infolink&fradato=%sT00:00:00&startrow=%d' % (datestr, startrow)
 
-html = postlistelib.fetch_url_harder(entryurl)
-print html
-fetch_postjournal_day(parser=parser, url=entryurl, html=html, saver=saver)
-exit(0)
+        html = postlistelib.fetch_url_harder(url)
+        root = lxml.html.fromstring(html)
 
-#https://www.narvik.kommune.no/artikkel.aspx?MId1=6&AId=45
+        urls = root.cssselect("a.content-link")
+        urllist = []
+        for ahref in urls:
+            href = ahref.attrib['href']
+            if -1 != href.find("response=journalpost_detaljer"):
+                url = urlparse.urljoin(url, href)
+                urllist.append(url)
+#        print urllist
+        if 0 == len(urllist):
+            break
+        for entryurl in urllist:
+            fetch_postjournal_entry(parser=parser, datastore=datastore,
+                                    entryurl=entryurl)
+            totalcount = totalcount + 1
+        startrow = startrow + rowinc
+    scraperwiki.sqlite.save(unique_keys=['journalid'], data=datastore)
+    return totalcount
 
-#https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_postliste&MId1=101
-
-#https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_postliste&MId1=101&scripturi=/innsyn.aspx&skin=infolink&fradato=2013-04-09T00:00:00
-#https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_postliste&MId1=101&scripturi=/innsyn.aspx&skin=infolink&fradato=2013-04-09T00:00:00&startrow=10
-
-#https://www.narvik.kommune.no/innsyn.aspx?response=journalpost_detaljer&journalpostid=2013006498&scripturi=/innsyn.aspx&skin=infolink&Mid1=101&
-
-
-for dayurl in urllist:
-
-    # Only parse once
+def scrape_some_days(parser):
+    aday = datetime.timedelta(1) # one day delta
+    newest = None
     try:
-        res = scraperwiki.sqlite.select("scrapedurl from swdata where scrapedurl = '"+dayurl+"' limit 1")
-        if 0 < len(res):
-            continue
-    except Exception, e: # Probably no table yet
+        newest = dateutil.parser.parse(scraperwiki.sqlite.select("max(recorddate) as max from swdata")[0]["max"], dayfirst=False).date()
+        oldest = dateutil.parser.parse(scraperwiki.sqlite.select("min(recorddate) as min from swdata")[0]["min"], dayfirst=False).date()
+    except scraperwiki.sqlite.SqliteError:
+        # Table not created yet, ignore the error
         pass
 
-    print
-    print "Fetching from " + dayurl
-    print
-    html = postlistelib.fetch_url_harder(dayurl)
-#    print html
-    fetch_postjournal_day(parser=parser, url=dayurl, html=html, saver=saver)
+    if not newest:
+        # Bootstrap a month ago
+        newest = datetime.datetime.today() - aday * 30
+        oldest = newest
+
+    #print oldest, newest
+
+    skiplimit = 10
+    totalcount = 0
+
+    # Look forward one week to at least get past the weekends, rescan
+    # the last day in case new records showed up in the mean time.
+    # Next, scan backwards, one day before the oldest entry in the
+    # database.
+    for n in range(0, skiplimit, 1):
+        day = newest + aday * n
+#        print day
+        totalcount = totalcount + fetch_day(parser, day)
+        if cpu_spent() > (cpu_available() - 3):
+            print "Running short on CPU time, exiting"
+            return 0
+
+    for n in range(-1, -skiplimit, -1):
+        day = oldest + aday * n
+#        print day
+        totalcount = totalcount + fetch_day(parser, day)
+        if cpu_spent() > (cpu_available() - 3):
+            print "Running short on CPU time, exiting"
+            return 0
+
+    print "Fetched %d journal entries" % totalcount
+
+    # Need to rescan after a while to make sure we get the entries
+    # that take a while to show up when moving forward.  Idea: Revisit
+    # all days where the record date is less than 30 days after the
+    # scraper date, allowing records to change for 30 days until we
+    # stop rescraping them.  But wait 15 days before scraping again,
+    # to avoid scraping the same day over and over.
+    totalcount = 0
+    for drec in scraperwiki.sqlite.select("DISTINCT(recorddate) as d FROM swdata WHERE JULIANDAY(scrapestamputc) - JULIANDAY(recorddate) < 30 AND JULIANDAY('now') - JULIANDAY(scrapestamputc) > 15"):
+        day = dateutil.parser.parse(drec['d'], dayfirst=False).date()
+        print day
+        totalcount = totalcount + fetch_day(parser, day)
+        if cpu_spent() > (cpu_available() - 3):
+            print "Running short on CPU time, exiting"
+            return 0
+    print "Rescanned %d journal entries" % totalcount
+
+def main():
+    print "Fetching public journal!"
+    parser = postlistelib.JournalParser(agency=agency)
+    datastore = []
+    scrape_some_days(parser)
+
+main()
