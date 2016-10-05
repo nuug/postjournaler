@@ -127,7 +127,7 @@ def fetch_postjournal_entry(parser, datastore, entryurl):
     # recipient/sender
     mottakere = root.cssselect("div.dokmottakere")
     if mottakere:
-        fratil = mottakere[0].text_content()
+        fratil = lxml.html.fromstring(lxml.html.tostring(mottakere[0]).replace('<br>', ", ")).text_content()
         if parser.is_sender_doctype(doctype):
             fratilfield = 'sender'
         elif parser.is_recipient_doctype(doctype):
