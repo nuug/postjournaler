@@ -6,8 +6,9 @@
 #  Format: HTML
 #  Datatype: ?
 #  Vendor: Visma
-#  Run: notyet
+#  Run: daily
 #  Missingfields: casedocseq
+#  Publish duration: unlimited?
 
 import datetime
 import resource
