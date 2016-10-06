@@ -23,7 +23,7 @@ Run: daily&lt;br&gt;
 &lt;!-- nuug-postliste-endyaml --&gt;
 </pre></p>
 <table id="myTable" class="tablesorter">
-<thead><tr><th>Name</th><th>type</th><th>status</th><th>schedule</th><th>format</th><th>datatype</th><th>created</th><th>URL</th></tr></thead><tbody>
+<thead><tr><th>Name</th><th>type</th><th>status</th><th>schedule</th><th>format</th><th>datatype</th><th>created</th></tr></thead><tbody>
 '''
 
 counter = {}
@@ -55,8 +55,8 @@ for scrapername in glob.glob("scrapersources/postlist*"):
     else: Type = 'unknown'
 
 
-    print '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><a href="https://scraperwiki.com/scrapers/%s/">URL</a></td></tr>' % \
-    (data['Name'],data['Type'],data['Status'], Run, Format, Type, "unknown", scrapername)
+    print '<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % \
+    (data['Name'],data['Type'],data['Status'], Run, Format, Type, "unknown")
 print '''</tbody></table><table id="myTable2" class="tablesorter"><thead><tr><th>type</th><th>count</th></tr></thead><tbody>'''
 
 for key in counter:
