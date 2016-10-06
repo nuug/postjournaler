@@ -4,8 +4,8 @@
 #  Status: finished
 #  Name: Ås kommune
 #  Format: HTML
-#  Datatype: ?
-#  Vendor: ?
+#  Datatype:
+#  Vendor:
 #  Run: daily
 #  Missingfields: journalseqnr, journalyear, journalid
 #  Publish duration: 3 months

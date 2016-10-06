@@ -4,11 +4,11 @@
 #  Status: finished
 #  Name: Oslo kommunes byrådsavdelinger og Rådhusets forvaltningstjeneste
 #  Format: HTML
-#  Datatype: ?
-#  Vendor: ?
+#  Datatype:
+#  Vendor:
 #  Run: daily
 #  Missingfields: journalseqnr, journalyear, journalid
-#  Publish duration: ? months
+#  Publish duration: x months
 
 import scraperwiki
 import urllib

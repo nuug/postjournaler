@@ -4,8 +4,9 @@
 #  Status: unfinished
 #  Name: Arendal kommune
 #  Format: HTML
-#  Datatype: ?
-#  Vendor: ?
+#  Datatype:
+#  Vendor:
+#  Run: not finished
 #  Missingfields: caseid, casedesc, etc
 
 import scraperwiki

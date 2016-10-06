@@ -4,11 +4,11 @@
 #  Status: unfinished
 #  Name: Narvik kommune
 #  Format: HTML
-#  Datatype: ?
+#  Datatype:
 #  Vendor: Visma
 #  Run: daily
 #  Missingfields: casedocseq
-#  Publish duration: unlimited?
+#  Publish duration: perhaps unlimited
 
 import datetime
 import resource

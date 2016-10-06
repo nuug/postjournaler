@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # YAML-tagger:
-#  Type: movedtoOEP
+#  Type: statlig
 #  Status: disabled
 #  Name: Statistisk sentralbyrå
+#  Run: obsolete, moved to OEP
 
 import scraperwiki
 import urllib2

@@ -5,8 +5,8 @@
 #  Status: unfinished
 #  Name: Bioforsk
 #  Format: PDF
-#  Datatype: ?
-#  Vendor: ?
+#  Datatype:
+#  Vendor:
 #  Run: daily
 
 import scraperwiki

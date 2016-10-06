@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 # YAML-tagger:
 #  Type: høgskole
-#  Status: ?
+#  Status:
 #  Name: Høgskolen i Hamar
-#  Format: ?
-#  Datatype: ?
-#  Run: ?
+#  Format:
+#  Datatype:
+#  Run:
 
 # Based on the scraper advanced-scraping-pdf
 # See also

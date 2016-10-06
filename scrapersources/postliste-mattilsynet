@@ -4,8 +4,8 @@
 #  Status: unfinished
 #  Name: Mattilsynet
 #  Format: HTML
-#  Datatype: ?
-#  Vendor: ?
+#  Datatype:
+#  Vendor:
 #  Run: daily
 #  Missingfields: recorddate
 

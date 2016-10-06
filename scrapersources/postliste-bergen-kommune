@@ -4,8 +4,8 @@
 #  Status: unfinished
 #  Name: Bergen kommune
 #  Format: HTML
-#  Datatype: ?
-#  Vendor: ?
+#  Datatype:
+#  Vendor:
 #  Run: daily
 #  Missingfields: journalseqnr journalyear journalid
 

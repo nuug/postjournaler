@@ -4,8 +4,8 @@
 #  Status: finished
 #  Name: Offentlig Elektronisk postjournal delivery dates
 #  Format: HTML
-#  Datatype: ?
-#  Vendor: ?
+#  Datatype:
+#  Vendor: DIFI
 #  Run: hourly
 
 import scraperwiki

@@ -3,10 +3,10 @@
 #  Type: fylkeskommune
 #  Status: finished
 #  Name: Møre og Romsdals fylkeskommune
-#  Format: ?
-#  Datatype: ?
+#  Format:
+#  Datatype:
 #  Publish duration: 
-#  Run: ?
+#  Run:
 
 import scraperwiki
 import json
